@@ -162,54 +162,62 @@ export default function AdminDashboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-200 text-neutral-700">
-                {orders.slice(0, 5).map((order) => (
-                  <tr key={order.id} className="hover:bg-neutral-50/50 transition-colors">
-                    <td className="py-4 px-6 font-mono font-bold text-black uppercase">
-                      {order.id.slice(0, 10)}
-                    </td>
-                    <td className="py-4 px-6">
-                      <div className="font-semibold text-neutral-900">{order.customer_name}</div>
-                      <div className="text-[11px] text-neutral-400">{order.customer_email}</div>
-                    </td>
-                    <td className="py-4 px-6 font-semibold text-black">
-                      {formatPrice(order.total_amount)}
-                    </td>
-                    <td className="py-4 px-6">
-                      <span
-                        className={`inline-block px-2.5 py-1 text-[10px] uppercase tracking-wider font-semibold border ${
-                          order.status === 'delivered'
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            : order.status === 'shipped'
-                            ? 'bg-blue-50 text-blue-700 border-blue-200'
-                            : order.status === 'processing'
-                            ? 'bg-amber-50 text-amber-700 border-amber-200'
-                            : order.status === 'pending'
-                            ? 'bg-neutral-100 text-neutral-800 border-neutral-300'
-                            : 'bg-red-50 text-red-700 border-red-200'
-                        }`}
-                      >
-                        {order.status}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6 text-neutral-500">{formatDate(order.created_at)}</td>
-                    <td className="py-4 px-6 text-right">
-                      <select
-                        value={order.status}
-                        onChange={(e) =>
-                          handleStatusChange(order.id, e.target.value as OrderStatus)
-                        }
-                        className="bg-white border border-neutral-300 text-[11px] uppercase tracking-wider px-2 py-1 focus:outline-none focus:border-black"
-                      >
-                        <option value="pending">Pending</option>
-                        <option value="confirmed">Confirmed</option>
-                        <option value="processing">Processing</option>
-                        <option value="shipped">Shipped</option>
-                        <option value="delivered">Delivered</option>
-                        <option value="cancelled">Cancelled</option>
-                      </select>
+                {orders.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-12 text-center text-neutral-400">
+                      No customer orders recorded yet.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  orders.slice(0, 5).map((order) => (
+                    <tr key={order.id} className="hover:bg-neutral-50/50 transition-colors">
+                      <td className="py-4 px-6 font-mono font-bold text-black uppercase">
+                        {order.id.slice(0, 10)}
+                      </td>
+                      <td className="py-4 px-6">
+                        <div className="font-semibold text-neutral-900">{order.customer_name}</div>
+                        <div className="text-[11px] text-neutral-400">{order.customer_email}</div>
+                      </td>
+                      <td className="py-4 px-6 font-semibold text-black">
+                        {formatPrice(order.total_amount)}
+                      </td>
+                      <td className="py-4 px-6">
+                        <span
+                          className={`inline-block px-2.5 py-1 text-[10px] uppercase tracking-wider font-semibold border ${
+                            order.status === 'delivered'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : order.status === 'shipped'
+                              ? 'bg-blue-50 text-blue-700 border-blue-200'
+                              : order.status === 'processing'
+                              ? 'bg-amber-50 text-amber-700 border-amber-200'
+                              : order.status === 'pending'
+                              ? 'bg-neutral-100 text-neutral-800 border-neutral-300'
+                              : 'bg-red-50 text-red-700 border-red-200'
+                          }`}
+                        >
+                          {order.status}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6 text-neutral-500">{formatDate(order.created_at)}</td>
+                      <td className="py-4 px-6 text-right">
+                        <select
+                          value={order.status}
+                          onChange={(e) =>
+                            handleStatusChange(order.id, e.target.value as OrderStatus)
+                          }
+                          className="bg-white border border-neutral-300 text-[11px] uppercase tracking-wider px-2 py-1 focus:outline-none focus:border-black"
+                        >
+                          <option value="pending">Pending</option>
+                          <option value="confirmed">Confirmed</option>
+                          <option value="processing">Processing</option>
+                          <option value="shipped">Shipped</option>
+                          <option value="delivered">Delivered</option>
+                          <option value="cancelled">Cancelled</option>
+                        </select>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

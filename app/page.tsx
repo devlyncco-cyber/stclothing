@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { getProducts, getCategories } from '@/lib/data/store';
+import { getProducts, getCategories, getLookbooks } from '@/lib/data/store';
 import { HomeHero } from '@/components/home/hero';
 import { MarqueeStrip } from '@/components/home/marquee-strip';
 import { HorizontalCollectionRail } from '@/components/home/horizontal-collection-rail';
@@ -15,35 +15,43 @@ import { AdinkraMark } from '@/components/ui/adinkra-mark';
 export const revalidate = 60; // ISR revalidate every 60s
 
 export default async function HomePage() {
-  const [allProducts, categories] = await Promise.all([
+  const [allProducts, categories, lookbooks] = await Promise.all([
     getProducts({ publishedOnly: true }),
     getCategories(),
+    getLookbooks({ publishedOnly: true }),
   ]);
 
   const featuredProducts = allProducts.filter((p) => p.featured).slice(0, 8);
   const displayFeatured = featuredProducts.length >= 4 ? featuredProducts : allProducts.slice(0, 6);
   const lookbookCallouts = allProducts.slice(0, 3);
+  const primaryLookbook = lookbooks.length > 0 ? lookbooks[0] : null;
 
   return (
     <div className="flex flex-col w-full font-sans bg-bone text-ink overflow-x-hidden">
       {/* 1. HERO SECTION */}
-      <HomeHero />
+      <HomeHero
+        heroProduct={displayFeatured[0]}
+        heroImage={primaryLookbook?.image_url || displayFeatured[0]?.images?.[0]?.image_url}
+        heroCaption={primaryLookbook ? `${primaryLookbook.vol} // ${primaryLookbook.title}` : undefined}
+      />
 
       {/* 2. MARQUEE STRIP */}
       <MarqueeStrip />
 
       {/* 3. FEATURED COLLECTION HORIZONTAL SCROLL RAIL */}
-      <HorizontalCollectionRail
-        products={displayFeatured}
-        title="Featured Collection"
-        subtitle="CURATED ESSENTIALS // TEMA ATELIER"
-      />
+      {displayFeatured.length > 0 && (
+        <HorizontalCollectionRail
+          products={displayFeatured}
+          title="Featured Collection"
+          subtitle="CURATED ESSENTIALS // TEMA ATELIER"
+        />
+      )}
 
       {/* 4. LOOKBOOK STORY SECTION (Campaign + 3 Product Callouts) */}
-      <LookbookStory calloutProducts={lookbookCallouts} />
+      <LookbookStory lookbook={primaryLookbook} calloutProducts={lookbookCallouts} />
 
       {/* 5. SHOP BY CATEGORY TILES */}
-      <CategoryTiles categories={categories} />
+      {categories.length > 0 && <CategoryTiles categories={categories} />}
 
       {/* 6. BRAND STORY TEASER */}
       <section className="py-24 bg-bone border-b border-stone-border select-none gallery-canvas">
@@ -77,7 +85,7 @@ export default async function HomePage() {
       </section>
 
       {/* 7. INSTAGRAM FEED SECTION */}
-      <InstagramFeed />
+      <InstagramFeed products={allProducts.slice(0, 4)} lookbooks={lookbooks} />
 
       {/* 8. WHATSAPP ORDER / CONTACT CTA BANNER */}
       <WhatsAppCtaBanner />

@@ -2,30 +2,46 @@ import React from 'react';
 import Image from 'next/image';
 import { ArrowUpRight, Instagram } from 'lucide-react';
 import { BRAND_CONFIG } from '@/lib/config/brand';
+import { Product, Lookbook } from '@/types/database';
 
-export function InstagramFeed() {
-  const posts = [
-    {
-      id: '1',
-      imageUrl: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=800&q=80',
-      caption: 'Lookbook Drop 04 in Tema. 450 GSM Double-Faced Terry.',
-    },
-    {
-      id: '2',
-      imageUrl: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=800&q=80',
-      caption: 'ST Heavyweight Oversized Tee in Natural Bone & Noir.',
-    },
-    {
-      id: '3',
-      imageUrl: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=800&q=80',
-      caption: 'Sculptural hoodie drape crafted for daily wear.',
-    },
-    {
-      id: '4',
-      imageUrl: 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?auto=format&fit=crop&w=800&q=80',
-      caption: 'Tapered pleated trousers with clean architectural hem.',
-    },
-  ];
+interface InstagramFeedProps {
+  products?: Product[];
+  lookbooks?: Lookbook[];
+}
+
+export function InstagramFeed({ products, lookbooks }: InstagramFeedProps) {
+  // Generate dispatch posts from live database products or lookbooks
+  const dynamicPosts = products && products.length > 0
+    ? products.slice(0, 4).map((p, idx) => ({
+        id: p.id,
+        imageUrl:
+          p.images?.find((img) => img.is_primary)?.image_url ||
+          p.images?.[0]?.image_url ||
+          'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=800&q=80',
+        caption: `${p.name} in Tema Atelier. ${p.description.slice(0, 75)}...`,
+      }))
+    : [
+        {
+          id: '1',
+          imageUrl: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=800&q=80',
+          caption: 'Editorial Spread in Tema. 450 GSM Double-Faced Terry.',
+        },
+        {
+          id: '2',
+          imageUrl: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=800&q=80',
+          caption: 'ST Heavyweight Oversized Tee in Natural Bone & Noir.',
+        },
+        {
+          id: '3',
+          imageUrl: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=800&q=80',
+          caption: 'Sculptural hoodie drape crafted for daily wear.',
+        },
+        {
+          id: '4',
+          imageUrl: 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?auto=format&fit=crop&w=800&q=80',
+          caption: 'Tapered pleated trousers with clean architectural hem.',
+        },
+      ];
 
   return (
     <section className="py-24 bg-bone text-ink border-b border-stone-border select-none gallery-canvas">
@@ -55,7 +71,7 @@ export function InstagramFeed() {
 
         {/* 4-Item Visual Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          {posts.map((post) => (
+          {dynamicPosts.map((post) => (
             <a
               key={post.id}
               href={BRAND_CONFIG.contacts.instagramUrl}

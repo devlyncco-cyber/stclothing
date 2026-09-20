@@ -3,19 +3,30 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowUpRight, MessageCircle } from 'lucide-react';
-import { Product } from '@/types/database';
+import { ArrowUpRight } from 'lucide-react';
+import { Product, Lookbook } from '@/types/database';
 import { formatPrice } from '@/lib/utils';
-import { generateProductWhatsAppUrl } from '@/lib/config/brand';
 import { useStoreSettings } from '@/lib/context/store-settings-context';
 
 interface LookbookStoryProps {
   calloutProducts: Product[];
+  lookbook?: Lookbook | null;
 }
 
-export function LookbookStory({ calloutProducts }: LookbookStoryProps) {
+export function LookbookStory({ calloutProducts, lookbook }: LookbookStoryProps) {
   const displayProducts = calloutProducts.slice(0, 3);
   const { settings } = useStoreSettings();
+
+  const campaignImage =
+    lookbook?.image_url ||
+    displayProducts[0]?.images?.find((img) => img.is_primary)?.image_url ||
+    displayProducts[0]?.images?.[0]?.image_url ||
+    'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1600&q=85';
+
+  const volTag = lookbook ? `${lookbook.vol} · ${lookbook.subtitle || 'TEMA ARCHIVE'}` : 'CAMPAIGN ESSAY · VOL. 04';
+  const essayText =
+    lookbook?.description ||
+    'Every piece is drafted to balance the heat of Coastal Ghana with the structural weight of modern luxury essentials.';
 
   return (
     <section className="py-28 bg-bone text-ink border-b border-stone-border select-none gallery-canvas">
@@ -24,18 +35,22 @@ export function LookbookStory({ calloutProducts }: LookbookStoryProps) {
         <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between pb-8 mb-16 border-b border-stone-border gap-4">
           <div className="space-y-2">
             <span className="font-mono text-[10px] tracking-ultra uppercase text-stone font-semibold">
-              LOOKBOOK SPREAD // TEMA EDITORIAL
+              {lookbook?.subtitle || 'LOOKBOOK SPREAD // TEMA EDITORIAL'}
             </span>
             <h2 className="text-3xl sm:text-5xl font-serif font-normal tracking-tight">
-              Form, Drape &amp; <span className="italic font-light">Structure</span>
+              {lookbook?.title || (
+                <>
+                  Form, Drape &amp; <span className="italic font-light">Structure</span>
+                </>
+              )}
             </h2>
           </div>
           <Link
-            href="/shop"
+            href="/lookbook"
             data-cursor="LOOKBOOK"
             className="font-mono text-xs uppercase tracking-ultra font-semibold text-ink hover:text-clay inline-flex items-center gap-2 group"
           >
-            <span>EXPLORE ALL PIECES</span>
+            <span>EXPLORE EDITORIAL SPREADS</span>
             <ArrowUpRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
           </Link>
         </div>
@@ -46,20 +61,20 @@ export function LookbookStory({ calloutProducts }: LookbookStoryProps) {
           <div className="lg:col-span-6 space-y-6">
             <div className="relative aspect-[4/5] w-full bg-sand border border-stone-border overflow-hidden group">
               <Image
-                src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1600&q=85"
-                alt="ST Clothing Editorial Campaign in Tema"
+                src={campaignImage}
+                alt={lookbook?.title || 'ST Clothing Editorial Campaign in Tema'}
                 fill
                 sizes="(max-width: 1024px) 100vw, 50vw"
                 className="object-cover object-center transition-transform duration-1000 ease-editorial group-hover:scale-105"
               />
               <div className="absolute top-4 left-4 z-10 pointer-events-none font-mono text-[9px] uppercase tracking-spec px-2.5 py-1 bg-bone/90 border border-stone-border text-ink">
-                CAMPAIGN ESSAY · VOL. 04
+                {volTag}
               </div>
             </div>
 
             <div className="space-y-3 font-mono text-xs text-stone-dark">
               <p className="text-sm font-serif italic text-ink">
-                &ldquo;Every piece is drafted to balance the heat of Coastal Ghana with the structural weight of modern luxury essentials.&rdquo;
+                &ldquo;{essayText}&rdquo;
               </p>
               <div className="flex justify-between border-t border-stone-border pt-3 text-[10px] uppercase tracking-wider text-stone">
                 <span>FABRIC: 280–450 GSM HEAVYWEIGHT</span>
@@ -82,15 +97,6 @@ export function LookbookStory({ calloutProducts }: LookbookStoryProps) {
                   product.images?.find((img) => img.is_primary)?.image_url ||
                   product.images?.[0]?.image_url ||
                   'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=1200&q=80';
-
-                const whatsAppUrl = generateProductWhatsAppUrl({
-                  productName: product.name,
-                  size: product.variants?.[0]?.size || 'M',
-                  quantity: 1,
-                  price: product.price,
-                  productSlug: product.slug,
-                  showPrices: settings.showPrices,
-                });
 
                 return (
                   <div

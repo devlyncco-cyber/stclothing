@@ -78,9 +78,13 @@ export async function getCategories(): Promise<Category[]> {
       .select('*')
       .order('sort_order', { ascending: true });
 
-    if (!error && data && data.length > 0) {
+    if (!error && data) {
       return data as Category[];
     }
+    if (error) {
+      console.error('Error fetching categories from database:', error);
+    }
+    return [];
   }
 
   const store = getLocalStore();
@@ -150,16 +154,20 @@ export async function getProducts(options?: {
 
     const { data, error } = await query;
 
-    if (!error && data && data.length > 0) {
+    if (!error && data) {
       let results = data as Product[];
       if (options?.categorySlug && options.categorySlug !== 'all') {
         results = results.filter((p) => p.category?.slug === options.categorySlug);
       }
       return results;
     }
+    if (error) {
+      console.error('Error fetching products from database:', error);
+    }
+    return [];
   }
 
-  // Fallback to local store
+  // Fallback to local store only when Supabase is not configured
   const store = getLocalStore();
   let results = [...store.products];
 
@@ -194,11 +202,15 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
         variants:product_variants(*)
       `)
       .eq('slug', slug)
-      .single();
+      .maybeSingle();
 
     if (!error && data) {
       return data as Product;
     }
+    if (error) {
+      console.error(`Error fetching product by slug ${slug}:`, error);
+    }
+    return null;
   }
 
   const store = getLocalStore();
@@ -218,11 +230,15 @@ export async function getProductById(id: string): Promise<Product | null> {
         variants:product_variants(*)
       `)
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (!error && data) {
       return data as Product;
     }
+    if (error) {
+      console.error(`Error fetching product by id ${id}:`, error);
+    }
+    return null;
   }
 
   const store = getLocalStore();
@@ -534,9 +550,13 @@ export async function getOrders(): Promise<Order[]> {
       .select('*, items:order_items(*)')
       .order('created_at', { ascending: false });
 
-    if (!error && data && data.length > 0) {
+    if (!error && data) {
       return data as Order[];
     }
+    if (error) {
+      console.error('Error fetching orders from database:', error);
+    }
+    return [];
   }
 
   const store = getLocalStore();
@@ -666,9 +686,13 @@ export async function getLookbooks(options?: { publishedOnly?: boolean }): Promi
     }
 
     const { data, error } = await query;
-    if (!error && data && data.length > 0) {
+    if (!error && data) {
       return data as Lookbook[];
     }
+    if (error) {
+      console.error('Error fetching lookbooks from database:', error);
+    }
+    return [];
   }
 
   const store = getLocalStore();
@@ -682,10 +706,14 @@ export async function getLookbooks(options?: { publishedOnly?: boolean }): Promi
 export async function getLookbookById(id: string): Promise<Lookbook | null> {
   if (isSupabaseConfigured()) {
     const supabase = createClient();
-    const { data, error } = await supabase.from('lookbooks').select('*').eq('id', id).single();
+    const { data, error } = await supabase.from('lookbooks').select('*').eq('id', id).maybeSingle();
     if (!error && data) {
       return data as Lookbook;
     }
+    if (error) {
+      console.error(`Error fetching lookbook by id ${id}:`, error);
+    }
+    return null;
   }
 
   const store = getLocalStore();

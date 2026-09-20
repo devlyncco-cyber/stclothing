@@ -1,10 +1,27 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowUpRight, MessageCircle } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 import { BRAND_CONFIG } from '@/lib/config/brand';
+import { Product } from '@/types/database';
 
-export function HomeHero() {
+interface HomeHeroProps {
+  heroImage?: string;
+  heroCaption?: string;
+  heroProduct?: Product;
+}
+
+export function HomeHero({ heroImage, heroCaption, heroProduct }: HomeHeroProps) {
+  const displayImage =
+    heroImage ||
+    heroProduct?.images?.find((img) => img.is_primary)?.image_url ||
+    heroProduct?.images?.[0]?.image_url ||
+    'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1800&q=85';
+
+  const captionText =
+    heroCaption ||
+    (heroProduct ? `ATELIER ARCHIVE // ${heroProduct.name}` : 'CAMPAIGN SPREAD 01 // TEMA ARCHIVE');
+
   return (
     <section className="relative min-h-[92vh] sm:min-h-screen w-full flex flex-col justify-between bg-bone text-ink pt-28 pb-12 px-4 sm:px-8 lg:px-16 border-b border-stone-border select-none gallery-canvas">
       {/* Top Micro-Label Strip */}
@@ -66,7 +83,7 @@ export function HomeHero() {
         {/* Right Campaign Imagery Frame */}
         <div className="lg:col-span-6 relative aspect-[4/5] sm:aspect-[16/11] lg:aspect-[4/3] w-full bg-sand border border-stone-border overflow-hidden group">
           <Image
-            src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1800&q=85"
+            src={displayImage}
             alt="ST Clothing Lookbook Campaign in Tema, Ghana"
             fill
             priority
@@ -76,8 +93,8 @@ export function HomeHero() {
 
           {/* Floating Spec Caption */}
           <div className="absolute bottom-4 left-4 right-4 z-10 flex items-center justify-between p-3 bg-bone/90 backdrop-blur-md border border-stone-border font-mono text-[9px] uppercase tracking-ultra text-stone-dark">
-            <span>CAMPAIGN SPREAD 01 // TEMA ARCHIVE</span>
-            <span className="text-ink font-semibold">GH₵ CURATED EDITIONS</span>
+            <span className="truncate max-w-[240px] sm:max-w-none">{captionText}</span>
+            <span className="text-ink font-semibold flex-shrink-0">GH₵ CURATED EDITIONS</span>
           </div>
         </div>
       </div>
