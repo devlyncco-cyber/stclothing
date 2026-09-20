@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Order, OrderStatus } from '@/types/database';
-import { getOrderById, trackOrder } from '@/lib/data/store';
+import { getOrderByIdAndEmail } from '@/lib/data/store';
 import { formatPrice, formatDate } from '@/lib/utils';
 import { useStoreSettings } from '@/lib/context/store-settings-context';
 import { BRAND_CONFIG } from '@/lib/config/brand';
@@ -24,6 +24,9 @@ import {
   MapPin,
   Calendar,
   AlertCircle,
+  Mail,
+  ShieldCheck,
+  Lock,
 } from 'lucide-react';
 
 export default function TrackPage() {
@@ -124,55 +127,62 @@ function getStatusBadge(status: OrderStatus) {
 function TrackContent() {
   const searchParams = useSearchParams();
   const { settings } = useStoreSettings();
-  const urlId = searchParams.get('id') || searchParams.get('order') || searchParams.get('ref') || '';
 
-  const [searchInput, setSearchInput] = useState(urlId);
+  const urlId = searchParams.get('id') || searchParams.get('order') || searchParams.get('ref') || '';
+  const urlEmail = searchParams.get('email') || '';
+
+  const [orderIdInput, setOrderIdInput] = useState(urlId);
+  const [emailInput, setEmailInput] = useState(urlEmail);
   const [activeOrder, setActiveOrder] = useState<Order | null>(null);
-  const [multipleResults, setMultipleResults] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const [copied, setCopied] = useState(false);
 
-  const performSearch = async (term: string) => {
-    const clean = term.trim();
-    if (!clean) return;
+  const performSearch = async (orderId: string, email: string) => {
+    const cleanId = orderId.trim();
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!cleanId || !cleanEmail) {
+      setErrorMessage('Please enter both your Order Reference ID and Email Address.');
+      return;
+    }
 
     setIsLoading(true);
     setHasSearched(true);
+    setErrorMessage('');
     setActiveOrder(null);
-    setMultipleResults([]);
 
     try {
-      // 1. Try fetching exact order
-      const single = await getOrderById(clean);
-      if (single) {
-        setActiveOrder(single);
+      const matchedOrder = await getOrderByIdAndEmail(cleanId, cleanEmail);
+      if (matchedOrder) {
+        setActiveOrder(matchedOrder);
       } else {
-        // 2. Try searching by phone/email/prefix
-        const results = await trackOrder(clean);
-        if (results.length === 1) {
-          setActiveOrder(results[0]);
-        } else if (results.length > 1) {
-          setMultipleResults(results);
-        }
+        setErrorMessage(
+          'No order found matching this Order Reference ID and Email Address combination. Please verify your credentials from your receipt.'
+        );
       }
     } catch (e) {
       console.error('Error during order search:', e);
+      setErrorMessage('A network error occurred while retrieving your order. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    if (urlId) {
-      setSearchInput(urlId);
-      performSearch(urlId);
+    if (urlId && urlEmail) {
+      setOrderIdInput(urlId);
+      setEmailInput(urlEmail);
+      performSearch(urlId, urlEmail);
+    } else if (urlId) {
+      setOrderIdInput(urlId);
     }
-  }, [urlId]);
+  }, [urlId, urlEmail]);
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    performSearch(searchInput);
+    performSearch(orderIdInput, emailInput);
   };
 
   const handleCopyId = (id: string) => {
@@ -189,110 +199,123 @@ function TrackContent() {
         {/* Header */}
         <div className="max-w-4xl mx-auto text-center space-y-4 mb-12">
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-sand border border-stone-border font-mono text-[10px] uppercase tracking-ultra text-stone">
-            <span>ATELIER DISPATCH TRACKER</span>
+            <ShieldCheck className="w-3.5 h-3.5 text-clay" />
+            <span>SECURE ATELIER DISPATCH TRACKER</span>
           </div>
           <h1 className="text-4xl sm:text-6xl font-serif font-normal tracking-tight text-ink">
             Track Your Order
           </h1>
           <p className="text-sm font-sans font-light text-stone-dark max-w-xl mx-auto leading-relaxed">
-            Enter your Order Reference ID, Phone Number, or Email to view real-time production, packaging, and courier delivery status.
+            For security, please enter both your <strong>Order Reference ID</strong> and <strong>Email Address</strong> used at checkout to view production status and live courier dispatch.
           </p>
         </div>
 
-        {/* Search Bar */}
-        <div className="max-w-2xl mx-auto mb-16">
-          <form onSubmit={handleFormSubmit} className="flex gap-2">
-            <div className="relative flex-1 font-mono">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone" />
-              <input
-                type="text"
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Enter Order ID (e.g. 9b1deb4d...) or Phone Number"
-                className="w-full pl-11 pr-4 py-4 bg-sand border border-stone-border text-xs text-ink placeholder:text-stone focus:outline-none focus:border-ink"
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={isLoading || !searchInput.trim()}
-              className="px-8 py-4 bg-ink text-bone font-mono text-xs uppercase tracking-ultra font-semibold hover:bg-clay hover:text-white transition-colors disabled:bg-stone-dark/50 disabled:cursor-not-allowed flex items-center gap-2"
+        {/* Dual Input Form (Order ID + Email) */}
+        {!activeOrder && (
+          <div className="max-w-xl mx-auto mb-16">
+            <form
+              onSubmit={handleFormSubmit}
+              className="p-6 sm:p-8 bg-sand border border-stone-border space-y-5 font-mono shadow-sm"
             >
-              <span>{isLoading ? 'SEARCHING...' : 'TRACK'}</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </form>
+              <div className="flex items-center gap-2 pb-3 border-b border-stone-border text-xs uppercase tracking-ultra font-bold text-ink">
+                <Lock className="w-3.5 h-3.5 text-clay" />
+                <span>Order Verification</span>
+              </div>
 
-          <p className="text-[10px] font-mono text-stone mt-2 text-center">
-            Tip: Your Order Reference was shown on your order confirmation page and is linked on WhatsApp.
-          </p>
-        </div>
-
-        {/* Multiple Orders Result List */}
-        {multipleResults.length > 0 && !activeOrder && (
-          <div className="max-w-3xl mx-auto space-y-4 mb-16">
-            <h2 className="font-mono text-xs uppercase tracking-ultra font-bold text-ink">
-              Found {multipleResults.length} Matching Orders:
-            </h2>
-            <div className="divide-y divide-stone-border bg-sand border border-stone-border">
-              {multipleResults.map((order) => (
-                <div
-                  key={order.id}
-                  onClick={() => setActiveOrder(order)}
-                  className="p-4 sm:p-6 hover:bg-bone/80 cursor-pointer transition-colors flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 font-mono text-xs"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-ink">{order.id}</span>
-                      {getStatusBadge(order.status)}
-                    </div>
-                    <p className="text-[11px] text-stone-dark">
-                      {order.customer_name} · {order.items?.length || 0} Items · {formatDate(order.created_at)}
-                    </p>
+              {errorMessage && (
+                <div className="p-4 bg-red-50 border border-red-200 text-xs text-red-800 space-y-1 font-sans">
+                  <div className="flex items-center gap-2 font-mono font-bold uppercase text-[10px] text-red-900">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    <span>Lookup Error</span>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <span className="font-bold text-ink font-serif text-sm">
-                      {formatPrice(order.total_amount)}
-                    </span>
-                    <button
-                      type="button"
-                      className="px-4 py-2 bg-ink text-bone text-[10px] uppercase tracking-ultra font-semibold hover:bg-clay transition-colors"
-                    >
-                      View Details
-                    </button>
+                  <p className="text-xs leading-relaxed">{errorMessage}</p>
+                </div>
+              )}
+
+              <div className="space-y-4">
+                {/* 1. Order ID */}
+                <div>
+                  <label className="block text-[10px] uppercase tracking-ultra text-stone mb-1.5 font-medium">
+                    Order Reference ID *
+                  </label>
+                  <div className="relative">
+                    <Package className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone" />
+                    <input
+                      type="text"
+                      required
+                      value={orderIdInput}
+                      onChange={(e) => setOrderIdInput(e.target.value)}
+                      placeholder="e.g. 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d"
+                      className="w-full pl-10 pr-3.5 py-3 bg-bone border border-stone-border text-xs text-ink placeholder:text-stone focus:outline-none focus:border-ink font-mono"
+                    />
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
 
-        {/* Not Found Screen */}
-        {hasSearched && !isLoading && !activeOrder && multipleResults.length === 0 && (
-          <div className="max-w-md mx-auto p-12 bg-sand border border-stone-border text-center space-y-4 font-mono">
-            <AlertCircle className="w-10 h-10 text-stone mx-auto" />
-            <h3 className="text-base font-serif font-bold text-ink">No Order Record Found</h3>
-            <p className="text-xs font-sans text-stone-dark leading-relaxed">
-              We could not find an order matching &ldquo;{searchInput}&rdquo;. Please verify the Order ID or phone number.
-            </p>
-            <div className="pt-2">
-              <a
-                href={`https://wa.me/${primaryWa}?text=${encodeURIComponent(
-                  `Hello ST Clothing, I am trying to track my order with keyword: "${searchInput}". Could you please assist me?`
-                )}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-700 text-white text-xs uppercase tracking-ultra font-semibold hover:bg-emerald-800 transition-colors"
+                {/* 2. Email Address */}
+                <div>
+                  <label className="block text-[10px] uppercase tracking-ultra text-stone mb-1.5 font-medium">
+                    Email Address *
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone" />
+                    <input
+                      type="email"
+                      required
+                      value={emailInput}
+                      onChange={(e) => setEmailInput(e.target.value)}
+                      placeholder="e.g. kwame@example.com"
+                      className="w-full pl-10 pr-3.5 py-3 bg-bone border border-stone-border text-xs text-ink placeholder:text-stone focus:outline-none focus:border-ink font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading || !orderIdInput.trim() || !emailInput.trim()}
+                className="w-full py-4 bg-ink text-bone font-mono text-xs uppercase tracking-ultra font-semibold hover:bg-clay hover:text-white transition-colors disabled:bg-stone-dark/50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                <MessageCircle className="w-4 h-4 fill-current" />
-                <span>Ask Atelier on WhatsApp</span>
-              </a>
-            </div>
+                <span>{isLoading ? 'VERIFYING CREDENTIALS...' : 'LOOKUP ORDER DETAILS'}</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+
+              <div className="pt-2 border-t border-stone-border/60 text-center">
+                <p className="text-[10px] text-stone font-sans">
+                  Need assistance finding your details?{' '}
+                  <a
+                    href={`https://wa.me/${primaryWa}?text=${encodeURIComponent(
+                      'Hello ST Clothing Atelier, I need help finding my order tracking reference.'
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline text-ink font-mono font-medium hover:text-clay"
+                  >
+                    Contact Atelier Desk
+                  </a>
+                </p>
+              </div>
+            </form>
           </div>
         )}
 
         {/* Active Order Details View */}
         {activeOrder && (
           <div className="max-w-4xl mx-auto space-y-8">
+            {/* Top Bar with Reset Option */}
+            <div className="flex justify-between items-center font-mono text-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveOrder(null);
+                  setHasSearched(false);
+                  setErrorMessage('');
+                }}
+                className="inline-flex items-center gap-1.5 text-stone hover:text-ink transition-colors uppercase text-[10px] tracking-ultra"
+              >
+                ← Look up a different order
+              </button>
+            </div>
+
             {/* 1. Header Card */}
             <div className="p-6 sm:p-8 bg-sand border border-stone-border space-y-6">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-stone-border/70">
@@ -509,7 +532,8 @@ function TrackContent() {
                 type="button"
                 onClick={() => {
                   setActiveOrder(null);
-                  setSearchInput('');
+                  setOrderIdInput('');
+                  setEmailInput('');
                   setHasSearched(false);
                 }}
                 className="px-8 py-3.5 bg-bone border border-stone-border text-ink uppercase tracking-ultra font-semibold hover:bg-sand transition-colors text-center"

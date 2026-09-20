@@ -199,7 +199,7 @@ export default function CheckoutPage() {
           {/* Action Buttons */}
           <div className="pt-2 flex flex-col sm:flex-row justify-center gap-4 font-mono text-xs">
             <Link
-              href={`/track?id=${orderComplete.id}`}
+              href={`/track?id=${orderComplete.id}&email=${encodeURIComponent(formData.email)}`}
               className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-ink text-bone uppercase tracking-ultra font-semibold hover:bg-clay hover:text-white transition-colors"
             >
               <Search className="w-4 h-4" />

@@ -804,6 +804,45 @@ export async function createOrder(orderData: {
   return newOrder;
 }
 
+export async function getOrderByIdAndEmail(orderId: string, email: string): Promise<Order | null> {
+  const cleanId = orderId.trim();
+  const cleanEmail = email.trim().toLowerCase();
+  if (!cleanId || !cleanEmail) return null;
+
+  if (isSupabaseConfigured()) {
+    const supabase = createClient();
+    let query = supabase
+      .from('orders')
+      .select('*, items:order_items(*)')
+      .ilike('customer_email', cleanEmail);
+
+    if (isValidUuid(cleanId)) {
+      query = query.eq('id', cleanId);
+    } else {
+      query = query.ilike('id', `${cleanId}%`);
+    }
+
+    const { data, error } = await query.maybeSingle();
+    if (!error && data) {
+      return data as Order;
+    }
+    if (error) {
+      console.error(`Error fetching order by id ${cleanId} and email:`, error);
+    }
+  }
+
+  const store = getLocalStore();
+  const found = (store.orders || []).find((o) => {
+    const idMatch =
+      o.id.toLowerCase() === cleanId.toLowerCase() ||
+      o.id.toLowerCase().startsWith(cleanId.toLowerCase());
+    const emailMatch = o.customer_email.trim().toLowerCase() === cleanEmail;
+    return idMatch && emailMatch;
+  });
+
+  return found || null;
+}
+
 export async function getOrderById(id: string): Promise<Order | null> {
   const cleanId = id.trim();
   if (!cleanId) return null;
