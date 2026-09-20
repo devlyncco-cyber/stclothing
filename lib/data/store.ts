@@ -1,19 +1,21 @@
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
-import { Product, Category, Order, OrderStatus, ProductImage, ProductVariant } from '@/types/database';
-import { SEED_CATEGORIES, SEED_PRODUCTS, SEED_ORDERS } from './seed-products';
+import { Product, Category, Order, OrderStatus, ProductImage, ProductVariant, Lookbook } from '@/types/database';
+import { SEED_CATEGORIES, SEED_PRODUCTS, SEED_ORDERS, SEED_LOOKBOOKS } from './seed-products';
 
 // Local storage keys for local fallback store
 const STORAGE_KEY_PRODUCTS = 'st_clothing_products_v1';
 const STORAGE_KEY_CATEGORIES = 'st_clothing_categories_v1';
 const STORAGE_KEY_ORDERS = 'st_clothing_orders_v1';
+const STORAGE_KEY_LOOKBOOKS = 'st_clothing_lookbooks_v1';
 
 // Helper to get local data
-function getLocalStore(): { products: Product[]; categories: Category[]; orders: Order[] } {
+function getLocalStore(): { products: Product[]; categories: Category[]; orders: Order[]; lookbooks: Lookbook[] } {
   if (typeof window === 'undefined') {
     return {
       products: SEED_PRODUCTS,
       categories: SEED_CATEGORIES,
       orders: SEED_ORDERS,
+      lookbooks: SEED_LOOKBOOKS,
     };
   }
 
@@ -21,18 +23,21 @@ function getLocalStore(): { products: Product[]; categories: Category[]; orders:
     const productsJson = localStorage.getItem(STORAGE_KEY_PRODUCTS);
     const categoriesJson = localStorage.getItem(STORAGE_KEY_CATEGORIES);
     const ordersJson = localStorage.getItem(STORAGE_KEY_ORDERS);
+    const lookbooksJson = localStorage.getItem(STORAGE_KEY_LOOKBOOKS);
 
     const products = productsJson ? JSON.parse(productsJson) : SEED_PRODUCTS;
     const categories = categoriesJson ? JSON.parse(categoriesJson) : SEED_CATEGORIES;
     const orders = ordersJson ? JSON.parse(ordersJson) : SEED_ORDERS;
+    const lookbooks = lookbooksJson ? JSON.parse(lookbooksJson) : SEED_LOOKBOOKS;
 
-    return { products, categories, orders };
+    return { products, categories, orders, lookbooks };
   } catch (err) {
     console.error('Error reading local fallback store:', err);
     return {
       products: SEED_PRODUCTS,
       categories: SEED_CATEGORIES,
       orders: SEED_ORDERS,
+      lookbooks: SEED_LOOKBOOKS,
     };
   }
 }
@@ -52,6 +57,12 @@ function saveLocalCategories(categories: Category[]) {
 function saveLocalOrders(orders: Order[]) {
   if (typeof window !== 'undefined') {
     localStorage.setItem(STORAGE_KEY_ORDERS, JSON.stringify(orders));
+  }
+}
+
+function saveLocalLookbooks(lookbooks: Lookbook[]) {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(STORAGE_KEY_LOOKBOOKS, JSON.stringify(lookbooks));
   }
 }
 
@@ -640,3 +651,128 @@ export async function updateOrderStatus(orderId: string, status: OrderStatus): P
   }
   return false;
 }
+
+// -----------------------------------------------------------------------------
+// LOOKBOOK OPERATIONS
+// -----------------------------------------------------------------------------
+
+export async function getLookbooks(options?: { publishedOnly?: boolean }): Promise<Lookbook[]> {
+  if (isSupabaseConfigured()) {
+    const supabase = createClient();
+    let query = supabase.from('lookbooks').select('*').order('sort_order', { ascending: true });
+    
+    if (options?.publishedOnly) {
+      query = query.eq('published', true);
+    }
+
+    const { data, error } = await query;
+    if (!error && data && data.length > 0) {
+      return data as Lookbook[];
+    }
+  }
+
+  const store = getLocalStore();
+  let list = store.lookbooks || [];
+  if (options?.publishedOnly) {
+    list = list.filter((item) => item.published !== false);
+  }
+  return [...list].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+}
+
+export async function getLookbookById(id: string): Promise<Lookbook | null> {
+  if (isSupabaseConfigured()) {
+    const supabase = createClient();
+    const { data, error } = await supabase.from('lookbooks').select('*').eq('id', id).single();
+    if (!error && data) {
+      return data as Lookbook;
+    }
+  }
+
+  const store = getLocalStore();
+  const item = (store.lookbooks || []).find((l) => l.id === id);
+  return item || null;
+}
+
+export async function createLookbook(lookbookData: Partial<Lookbook>): Promise<Lookbook> {
+  const id = lookbookData.id || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `lookbook-${Date.now()}`);
+  const now = new Date().toISOString();
+
+  const newLookbook: Lookbook = {
+    id,
+    vol: lookbookData.vol || 'VOL. 01',
+    title: lookbookData.title || 'Editorial Collection',
+    subtitle: lookbookData.subtitle || '35MM TEMA ARCHIVE',
+    description: lookbookData.description || '',
+    image_url: lookbookData.image_url || 'https://images.unsplash.com/photo-1509631179647-0177331693ae?q=80&w=1200&auto=format&fit=crop',
+    featured_product_id: lookbookData.featured_product_id || null,
+    featured_product_slug: lookbookData.featured_product_slug || null,
+    featured_product_name: lookbookData.featured_product_name || null,
+    featured_product_price: lookbookData.featured_product_price !== undefined ? lookbookData.featured_product_price : null,
+    sort_order: lookbookData.sort_order !== undefined ? lookbookData.sort_order : 0,
+    published: lookbookData.published !== undefined ? lookbookData.published : true,
+    created_at: now,
+    updated_at: now,
+  };
+
+  if (isSupabaseConfigured()) {
+    const supabase = createClient();
+    const { data, error } = await supabase.from('lookbooks').insert([newLookbook]).select().single();
+    if (!error && data) {
+      return data as Lookbook;
+    }
+  }
+
+  const store = getLocalStore();
+  const updated = [...(store.lookbooks || []), newLookbook];
+  saveLocalLookbooks(updated);
+  return newLookbook;
+}
+
+export async function updateLookbook(id: string, lookbookData: Partial<Lookbook>): Promise<Lookbook | null> {
+  const now = new Date().toISOString();
+
+  if (isSupabaseConfigured()) {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('lookbooks')
+      .update({
+        ...lookbookData,
+        updated_at: now,
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (!error && data) {
+      return data as Lookbook;
+    }
+  }
+
+  const store = getLocalStore();
+  const index = (store.lookbooks || []).findIndex((l) => l.id === id);
+  if (index !== -1) {
+    const updatedLookbook: Lookbook = {
+      ...store.lookbooks[index],
+      ...lookbookData,
+      updated_at: now,
+    };
+    store.lookbooks[index] = updatedLookbook;
+    saveLocalLookbooks(store.lookbooks);
+    return updatedLookbook;
+  }
+  return null;
+}
+
+export async function deleteLookbook(id: string): Promise<boolean> {
+  if (isSupabaseConfigured()) {
+    const supabase = createClient();
+    const { error } = await supabase.from('lookbooks').delete().eq('id', id);
+    if (!error) return true;
+  }
+
+  const store = getLocalStore();
+  const filtered = (store.lookbooks || []).filter((l) => l.id !== id);
+  saveLocalLookbooks(filtered);
+  return true;
+}
+

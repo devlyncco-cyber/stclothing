@@ -112,6 +112,7 @@ export interface StoreSettingsRow {
   id: string;
   orders_enabled: boolean;
   bag_enabled: boolean;
+  show_prices?: boolean;
   ordering_disabled_notice?: string | null;
   store_name: string;
   tagline?: string | null;
@@ -142,3 +143,22 @@ export interface StoreSettingsRow {
   created_at: string;
   updated_at: string;
 }
+
+export interface Lookbook {
+  id: string;
+  vol: string;
+  title: string;
+  subtitle?: string | null;
+  description: string;
+  image_url: string;
+  featured_product_id?: string | null;
+  featured_product_slug?: string | null;
+  featured_product_name?: string | null;
+  featured_product_price?: number | null;
+  sort_order: number;
+  published: boolean;
+  created_at: string;
+  updated_at: string;
+  featured_product?: Product | null;
+}
+

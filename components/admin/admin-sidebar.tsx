@@ -17,6 +17,7 @@ import {
   Users,
   UserPlus,
   Sliders,
+  BookOpen,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -39,6 +40,7 @@ export function AdminSidebar({ mobileOpen = false, onCloseMobile }: AdminSidebar
     { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
     { label: 'Products', href: '/admin/products', icon: Package },
     { label: 'Add Product', href: '/admin/products/new', icon: PlusCircle },
+    { label: 'Lookbooks', href: '/admin/lookbooks', icon: BookOpen },
     { label: 'Orders', href: '/admin/orders', icon: ShoppingBag },
     { label: 'Categories', href: '/admin/categories', icon: Tags },
     { label: 'Store Settings', href: '/admin/settings', icon: Sliders },
