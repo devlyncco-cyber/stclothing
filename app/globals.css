@@ -1,0 +1,115 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,300;1,9..144,400;1,9..144,500&family=Inter:wght@200;300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: #F4F1EA;
+    --foreground: #141414;
+    --surface: #E9E4DA;
+    --border: #DCD6CB;
+    --muted: #E9E4DA;
+    --muted-foreground: #8A867D;
+    --accent: #B5532F; /* Clay - easily swappable per drop */
+    --accent-hover: #9D4424;
+
+    --font-serif: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  .dark {
+    --background: #0E0E0E;
+    --foreground: #EDE9E0;
+    --surface: #181816;
+    --border: #33312C;
+    --muted: #181816;
+    --muted-foreground: #8A867D;
+    --accent: #B5532F;
+    --accent-hover: #9D4424;
+  }
+
+  * {
+    border-color: var(--border);
+  }
+
+  html {
+    background-color: var(--background);
+    color: var(--foreground);
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11", "tnum";
+    overflow-x: hidden;
+  }
+
+  /* Custom subtle scrollbar */
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #E9E4DA;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #8A867D;
+    border-radius: 0px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #B5532F;
+  }
+}
+
+/* Kente-inspired subtle geometric woven divider / strip */
+.kente-woven-strip {
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--accent) 0px,
+    var(--accent) 4px,
+    var(--surface) 4px,
+    var(--surface) 8px,
+    var(--foreground) 8px,
+    var(--foreground) 10px,
+    var(--surface) 10px,
+    var(--surface) 14px
+  );
+  opacity: 0.85;
+}
+
+/* Subtle gallery wall texture */
+.gallery-canvas {
+  background-color: var(--background);
+  background-image: radial-gradient(rgba(20, 20, 20, 0.03) 1px, transparent 0);
+  background-size: 28px 28px;
+}
+
+/* Image mask reveal */
+.editorial-mask-reveal {
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+  transition: clip-path 0.8s cubic-bezier(0.22, 1, 0.36, 1), transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Hide scrollbars for clean horizontal rails */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Text highlight */
+::selection {
+  background-color: var(--foreground);
+  color: var(--background);
+}

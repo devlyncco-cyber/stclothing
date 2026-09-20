@@ -1,0 +1,642 @@
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
+import { Product, Category, Order, OrderStatus, ProductImage, ProductVariant } from '@/types/database';
+import { SEED_CATEGORIES, SEED_PRODUCTS, SEED_ORDERS } from './seed-products';
+
+// Local storage keys for local fallback store
+const STORAGE_KEY_PRODUCTS = 'st_clothing_products_v1';
+const STORAGE_KEY_CATEGORIES = 'st_clothing_categories_v1';
+const STORAGE_KEY_ORDERS = 'st_clothing_orders_v1';
+
+// Helper to get local data
+function getLocalStore(): { products: Product[]; categories: Category[]; orders: Order[] } {
+  if (typeof window === 'undefined') {
+    return {
+      products: SEED_PRODUCTS,
+      categories: SEED_CATEGORIES,
+      orders: SEED_ORDERS,
+    };
+  }
+
+  try {
+    const productsJson = localStorage.getItem(STORAGE_KEY_PRODUCTS);
+    const categoriesJson = localStorage.getItem(STORAGE_KEY_CATEGORIES);
+    const ordersJson = localStorage.getItem(STORAGE_KEY_ORDERS);
+
+    const products = productsJson ? JSON.parse(productsJson) : SEED_PRODUCTS;
+    const categories = categoriesJson ? JSON.parse(categoriesJson) : SEED_CATEGORIES;
+    const orders = ordersJson ? JSON.parse(ordersJson) : SEED_ORDERS;
+
+    return { products, categories, orders };
+  } catch (err) {
+    console.error('Error reading local fallback store:', err);
+    return {
+      products: SEED_PRODUCTS,
+      categories: SEED_CATEGORIES,
+      orders: SEED_ORDERS,
+    };
+  }
+}
+
+function saveLocalProducts(products: Product[]) {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(STORAGE_KEY_PRODUCTS, JSON.stringify(products));
+  }
+}
+
+function saveLocalCategories(categories: Category[]) {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(STORAGE_KEY_CATEGORIES, JSON.stringify(categories));
+  }
+}
+
+function saveLocalOrders(orders: Order[]) {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(STORAGE_KEY_ORDERS, JSON.stringify(orders));
+  }
+}
+
+// -----------------------------------------------------------------------------
+// CATEGORY OPERATIONS
+// -----------------------------------------------------------------------------
+
+export async function getCategories(): Promise<Category[]> {
+  if (isSupabaseConfigured()) {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .order('sort_order', { ascending: true });
+
+    if (!error && data && data.length > 0) {
+      return data as Category[];
+    }
+  }
+
+  const store = getLocalStore();
+  return store.categories;
+}
+
+export async function createCategory(category: Partial<Category>): Promise<Category> {
+  const newCat: Category = {
+    id: category.id || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `cat-${Date.now()}`),
+    name: category.name || 'New Category',
+    slug: category.slug || 'new-category',
+    description: category.description || null,
+    image_url: category.image_url || null,
+    sort_order: category.sort_order || 99,
+    created_at: new Date().toISOString(),
+  };
+
+  if (isSupabaseConfigured()) {
+    const supabase = createClient();
+    const { data, error } = await supabase.from('categories').insert([newCat]).select().single();
+    if (!error && data) {
+      return data as Category;
+    }
+  }
+
+  const store = getLocalStore();
+  const updated = [...store.categories, newCat];
+  saveLocalCategories(updated);
+  return newCat;
+}
+
+// -----------------------------------------------------------------------------
+// PRODUCT OPERATIONS
+// -----------------------------------------------------------------------------
+
+export async function getProducts(options?: {
+  publishedOnly?: boolean;
+  categoryId?: string;
+  categorySlug?: string;
+  featuredOnly?: boolean;
+  newArrivalsOnly?: boolean;
+}): Promise<Product[]> {
+  if (isSupabaseConfigured()) {
+    const supabase = createClient();
+    let query = supabase
+      .from('products')
+      .select(`
+        *,
+        category:categories(*),
+        images:product_images(*),
+        variants:product_variants(*)
+      `)
+      .order('created_at', { ascending: false });
+
+    if (options?.publishedOnly !== false) {
+      query = query.eq('published', true);
+    }
+    if (options?.featuredOnly) {
+      query = query.eq('featured', true);
+    }
+    if (options?.newArrivalsOnly) {
+      query = query.eq('new_arrival', true);
+    }
+    if (options?.categoryId) {
+      query = query.eq('category_id', options.categoryId);
+    }
+
+    const { data, error } = await query;
+
+    if (!error && data && data.length > 0) {
+      let results = data as Product[];
+      if (options?.categorySlug && options.categorySlug !== 'all') {
+        results = results.filter((p) => p.category?.slug === options.categorySlug);
+      }
+      return results;
+    }
+  }
+
+  // Fallback to local store
+  const store = getLocalStore();
+  let results = [...store.products];
+
+  if (options?.publishedOnly !== false) {
+    results = results.filter((p) => p.published);
+  }
+  if (options?.featuredOnly) {
+    results = results.filter((p) => p.featured);
+  }
+  if (options?.newArrivalsOnly) {
+    results = results.filter((p) => p.new_arrival);
+  }
+  if (options?.categoryId) {
+    results = results.filter((p) => p.category_id === options.categoryId);
+  }
+  if (options?.categorySlug && options.categorySlug !== 'all') {
+    results = results.filter((p) => p.category?.slug === options.categorySlug);
+  }
+
+  return results;
+}
+
+export async function getProductBySlug(slug: string): Promise<Product | null> {
+  if (isSupabaseConfigured()) {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('products')
+      .select(`
+        *,
+        category:categories(*),
+        images:product_images(*),
+        variants:product_variants(*)
+      `)
+      .eq('slug', slug)
+      .single();
+
+    if (!error && data) {
+      return data as Product;
+    }
+  }
+
+  const store = getLocalStore();
+  const found = store.products.find((p) => p.slug === slug);
+  return found || null;
+}
+
+export async function getProductById(id: string): Promise<Product | null> {
+  if (isSupabaseConfigured()) {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('products')
+      .select(`
+        *,
+        category:categories(*),
+        images:product_images(*),
+        variants:product_variants(*)
+      `)
+      .eq('id', id)
+      .single();
+
+    if (!error && data) {
+      return data as Product;
+    }
+  }
+
+  const store = getLocalStore();
+  const found = store.products.find((p) => p.id === id);
+  return found || null;
+}
+
+export async function createProduct(
+  productData: {
+    name: string;
+    slug: string;
+    description: string;
+    price: number;
+    compare_at_price?: number | null;
+    category_id?: string | null;
+    featured?: boolean;
+    published?: boolean;
+    new_arrival?: boolean;
+    images?: { image_url: string; storage_path?: string; alt_text?: string; is_primary?: boolean; sort_order?: number }[];
+    variants?: { size: string; color: string; stock_quantity: number; sku?: string }[];
+  }
+): Promise<Product> {
+  const productId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `prod-${Date.now()}`;
+  const now = new Date().toISOString();
+
+  const formattedImages: ProductImage[] = (productData.images || []).map((img, idx) => ({
+    id: `img-${Date.now()}-${idx}`,
+    product_id: productId,
+    image_url: img.image_url,
+    storage_path: img.storage_path || null,
+    alt_text: img.alt_text || `${productData.name} image ${idx + 1}`,
+    sort_order: img.sort_order ?? idx + 1,
+    is_primary: img.is_primary ?? idx === 0,
+    created_at: now,
+  }));
+
+  const formattedVariants: ProductVariant[] = (productData.variants || []).map((v, idx) => ({
+    id: `var-${Date.now()}-${idx}`,
+    product_id: productId,
+    size: v.size,
+    color: v.color,
+    stock_quantity: Number(v.stock_quantity) || 0,
+    sku: v.sku || null,
+    created_at: now,
+    updated_at: now,
+  }));
+
+  const newProduct: Product = {
+    id: productId,
+    name: productData.name,
+    slug: productData.slug,
+    description: productData.description,
+    price: Number(productData.price),
+    compare_at_price: productData.compare_at_price ? Number(productData.compare_at_price) : null,
+    category_id: productData.category_id || null,
+    featured: Boolean(productData.featured),
+    published: productData.published !== undefined ? productData.published : true,
+    new_arrival: Boolean(productData.new_arrival),
+    created_at: now,
+    updated_at: now,
+    images: formattedImages,
+    variants: formattedVariants,
+  };
+
+  if (isSupabaseConfigured()) {
+    const supabase = createClient();
+    // 1. Insert product base
+    const { data: prodRecord, error: prodErr } = await supabase
+      .from('products')
+      .insert([
+        {
+          id: productId,
+          name: productData.name,
+          slug: productData.slug,
+          description: productData.description,
+          price: productData.price,
+          compare_at_price: productData.compare_at_price,
+          category_id: productData.category_id,
+          featured: productData.featured,
+          published: productData.published,
+          new_arrival: productData.new_arrival,
+        },
+      ])
+      .select()
+      .single();
+
+    if (prodErr) {
+      console.error('Supabase product create error:', prodErr);
+    } else {
+      // 2. Insert images
+      if (formattedImages.length > 0) {
+        await supabase.from('product_images').insert(formattedImages);
+      }
+      // 3. Insert variants
+      if (formattedVariants.length > 0) {
+        await supabase.from('product_variants').insert(formattedVariants);
+      }
+      return newProduct;
+    }
+  }
+
+  // Local fallback
+  const store = getLocalStore();
+  const matchedCategory = store.categories.find((c) => c.id === productData.category_id) || null;
+  newProduct.category = matchedCategory;
+
+  const updatedProducts = [newProduct, ...store.products];
+  saveLocalProducts(updatedProducts);
+  return newProduct;
+}
+
+export async function updateProduct(
+  id: string,
+  productData: {
+    name?: string;
+    slug?: string;
+    description?: string;
+    price?: number;
+    compare_at_price?: number | null;
+    category_id?: string | null;
+    featured?: boolean;
+    published?: boolean;
+    new_arrival?: boolean;
+    images?: { id?: string; image_url: string; storage_path?: string; alt_text?: string; is_primary?: boolean; sort_order?: number }[];
+    variants?: { id?: string; size: string; color: string; stock_quantity: number; sku?: string }[];
+  }
+): Promise<Product | null> {
+  const now = new Date().toISOString();
+
+  if (isSupabaseConfigured()) {
+    const supabase = createClient();
+    const updatePayload: Record<string, any> = { updated_at: now };
+    if (productData.name !== undefined) updatePayload.name = productData.name;
+    if (productData.slug !== undefined) updatePayload.slug = productData.slug;
+    if (productData.description !== undefined) updatePayload.description = productData.description;
+    if (productData.price !== undefined) updatePayload.price = Number(productData.price);
+    if (productData.compare_at_price !== undefined) updatePayload.compare_at_price = productData.compare_at_price;
+    if (productData.category_id !== undefined) updatePayload.category_id = productData.category_id;
+    if (productData.featured !== undefined) updatePayload.featured = productData.featured;
+    if (productData.published !== undefined) updatePayload.published = productData.published;
+    if (productData.new_arrival !== undefined) updatePayload.new_arrival = productData.new_arrival;
+
+    const { error: prodErr } = await supabase.from('products').update(updatePayload).eq('id', id);
+    if (!prodErr) {
+      if (productData.images) {
+        // Replace product images
+        await supabase.from('product_images').delete().eq('product_id', id);
+        const newImages = productData.images.map((img, idx) => ({
+          product_id: id,
+          image_url: img.image_url,
+          storage_path: img.storage_path || null,
+          alt_text: img.alt_text || '',
+          sort_order: img.sort_order ?? idx + 1,
+          is_primary: img.is_primary ?? idx === 0,
+        }));
+        if (newImages.length > 0) {
+          await supabase.from('product_images').insert(newImages);
+        }
+      }
+
+      if (productData.variants) {
+        await supabase.from('product_variants').delete().eq('product_id', id);
+        const newVars = productData.variants.map((v) => ({
+          product_id: id,
+          size: v.size,
+          color: v.color,
+          stock_quantity: Number(v.stock_quantity) || 0,
+          sku: v.sku || null,
+        }));
+        if (newVars.length > 0) {
+          await supabase.from('product_variants').insert(newVars);
+        }
+      }
+      return getProductById(id);
+    }
+  }
+
+  // Fallback
+  const store = getLocalStore();
+  const existingIndex = store.products.findIndex((p) => p.id === id);
+  if (existingIndex === -1) return null;
+
+  const existing = store.products[existingIndex];
+  const matchedCategory = productData.category_id
+    ? store.categories.find((c) => c.id === productData.category_id) || null
+    : existing.category;
+
+  const updatedImages: ProductImage[] = productData.images
+    ? productData.images.map((img, idx) => ({
+        id: img.id || `img-${Date.now()}-${idx}`,
+        product_id: id,
+        image_url: img.image_url,
+        storage_path: img.storage_path || null,
+        alt_text: img.alt_text || `${productData.name || existing.name} image`,
+        sort_order: img.sort_order ?? idx + 1,
+        is_primary: img.is_primary ?? idx === 0,
+        created_at: now,
+      }))
+    : existing.images || [];
+
+  const updatedVariants: ProductVariant[] = productData.variants
+    ? productData.variants.map((v, idx) => ({
+        id: v.id || `var-${Date.now()}-${idx}`,
+        product_id: id,
+        size: v.size,
+        color: v.color,
+        stock_quantity: Number(v.stock_quantity) || 0,
+        sku: v.sku || null,
+        created_at: now,
+        updated_at: now,
+      }))
+    : existing.variants || [];
+
+  const updatedProduct: Product = {
+    ...existing,
+    name: productData.name !== undefined ? productData.name : existing.name,
+    slug: productData.slug !== undefined ? productData.slug : existing.slug,
+    description: productData.description !== undefined ? productData.description : existing.description,
+    price: productData.price !== undefined ? Number(productData.price) : existing.price,
+    compare_at_price:
+      productData.compare_at_price !== undefined ? productData.compare_at_price : existing.compare_at_price,
+    category_id: productData.category_id !== undefined ? productData.category_id : existing.category_id,
+    category: matchedCategory,
+    featured: productData.featured !== undefined ? productData.featured : existing.featured,
+    published: productData.published !== undefined ? productData.published : existing.published,
+    new_arrival: productData.new_arrival !== undefined ? productData.new_arrival : existing.new_arrival,
+    images: updatedImages,
+    variants: updatedVariants,
+    updated_at: now,
+  };
+
+  store.products[existingIndex] = updatedProduct;
+  saveLocalProducts(store.products);
+  return updatedProduct;
+}
+
+export async function deleteProduct(id: string): Promise<boolean> {
+  if (isSupabaseConfigured()) {
+    const supabase = createClient();
+    // Fetch image storage paths to clean up if any
+    const { data: images } = await supabase.from('product_images').select('storage_path').eq('product_id', id);
+    if (images && images.length > 0) {
+      const pathsToDelete = images.map((img) => img.storage_path).filter(Boolean) as string[];
+      if (pathsToDelete.length > 0) {
+        await supabase.storage.from('product-images').remove(pathsToDelete);
+      }
+    }
+
+    const { error } = await supabase.from('products').delete().eq('id', id);
+    if (!error) return true;
+  }
+
+  const store = getLocalStore();
+  const filtered = store.products.filter((p) => p.id !== id);
+  saveLocalProducts(filtered);
+  return true;
+}
+
+// -----------------------------------------------------------------------------
+// STORAGE OPERATIONS
+// -----------------------------------------------------------------------------
+
+export async function uploadProductImage(
+  file: File,
+  productId: string
+): Promise<{ imageUrl: string; storagePath: string }> {
+  if (isSupabaseConfigured()) {
+    const supabase = createClient();
+    const fileExt = file.name.split('.').pop() || 'webp';
+    const fileName = `${productId}/${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
+
+    const { data, error } = await supabase.storage.from('product-images').upload(fileName, file, {
+      cacheControl: '3600',
+      upsert: true,
+    });
+
+    if (!error && data) {
+      const { data: publicUrlData } = supabase.storage.from('product-images').getPublicUrl(data.path);
+      return {
+        imageUrl: publicUrlData.publicUrl,
+        storagePath: data.path,
+      };
+    }
+    console.warn('Storage upload error, using object URL fallback:', error);
+  }
+
+  // Fallback: Convert file to Base64 or Blob URL for client preview
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      resolve({
+        imageUrl: reader.result as string,
+        storagePath: `local-${file.name}`,
+      });
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// -----------------------------------------------------------------------------
+// ORDER OPERATIONS
+// -----------------------------------------------------------------------------
+
+export async function getOrders(): Promise<Order[]> {
+  if (isSupabaseConfigured()) {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*, items:order_items(*)')
+      .order('created_at', { ascending: false });
+
+    if (!error && data && data.length > 0) {
+      return data as Order[];
+    }
+  }
+
+  const store = getLocalStore();
+  return store.orders;
+}
+
+export async function createOrder(orderData: {
+  customer_name: string;
+  customer_email: string;
+  customer_phone?: string;
+  delivery_address: string;
+  city?: string;
+  postal_code?: string;
+  country?: string;
+  total_amount: number;
+  notes?: string;
+  items: {
+    product_id?: string;
+    product_name: string;
+    quantity: number;
+    price: number;
+    size?: string;
+    color?: string;
+    image_url?: string;
+  }[];
+}): Promise<Order> {
+  const orderId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `ord-${Date.now()}`;
+  const now = new Date().toISOString();
+
+  const formattedItems = orderData.items.map((item, idx) => ({
+    id: `item-${Date.now()}-${idx}`,
+    order_id: orderId,
+    product_id: item.product_id || null,
+    product_name: item.product_name,
+    quantity: item.quantity,
+    price: item.price,
+    size: item.size || null,
+    color: item.color || null,
+    image_url: item.image_url || null,
+    created_at: now,
+  }));
+
+  const newOrder: Order = {
+    id: orderId,
+    customer_name: orderData.customer_name,
+    customer_email: orderData.customer_email,
+    customer_phone: orderData.customer_phone || null,
+    delivery_address: orderData.delivery_address,
+    city: orderData.city || null,
+    postal_code: orderData.postal_code || null,
+    country: orderData.country || 'United States',
+    total_amount: orderData.total_amount,
+    status: 'pending',
+    notes: orderData.notes || null,
+    created_at: now,
+    updated_at: now,
+    items: formattedItems,
+  };
+
+  if (isSupabaseConfigured()) {
+    const supabase = createClient();
+    const { data: ord, error: ordErr } = await supabase
+      .from('orders')
+      .insert([
+        {
+          id: orderId,
+          customer_name: orderData.customer_name,
+          customer_email: orderData.customer_email,
+          customer_phone: orderData.customer_phone,
+          delivery_address: orderData.delivery_address,
+          city: orderData.city,
+          postal_code: orderData.postal_code,
+          country: orderData.country,
+          total_amount: orderData.total_amount,
+          status: 'pending',
+          notes: orderData.notes,
+        },
+      ])
+      .select()
+      .single();
+
+    if (!ordErr) {
+      if (formattedItems.length > 0) {
+        await supabase.from('order_items').insert(formattedItems);
+      }
+      return newOrder;
+    }
+  }
+
+  const store = getLocalStore();
+  const updatedOrders = [newOrder, ...store.orders];
+  saveLocalOrders(updatedOrders);
+  return newOrder;
+}
+
+export async function updateOrderStatus(orderId: string, status: OrderStatus): Promise<boolean> {
+  const now = new Date().toISOString();
+
+  if (isSupabaseConfigured()) {
+    const supabase = createClient();
+    const { error } = await supabase.from('orders').update({ status, updated_at: now }).eq('id', orderId);
+    if (!error) return true;
+  }
+
+  const store = getLocalStore();
+  const orderIndex = store.orders.findIndex((o) => o.id === orderId);
+  if (orderIndex !== -1) {
+    store.orders[orderIndex].status = status;
+    store.orders[orderIndex].updated_at = now;
+    saveLocalOrders(store.orders);
+    return true;
+  }
+  return false;
+}
