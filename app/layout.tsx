@@ -11,6 +11,7 @@ import { WhatsAppFloatingButton } from '@/components/whatsapp-floating-button';
 import { BRAND_CONFIG } from '@/lib/config/brand';
 
 import { StoreSettingsProvider } from '@/lib/context/store-settings-context';
+import { BrowserCacheProvider } from '@/components/ui/browser-cache-provider';
 
 export const metadata: Metadata = {
   title: {
@@ -109,16 +110,18 @@ export default function RootLayout({
       <body className="bg-bone text-ink min-h-screen flex flex-col font-sans selection:bg-ink selection:text-bone antialiased overflow-x-hidden">
         <AuthProvider>
           <StoreSettingsProvider>
-            <CartProvider>
-              <SmoothScrollProvider>
-                <MagneticCursor />
-                <Navbar />
-                <main className="flex-1 w-full">{children}</main>
-                <Footer />
-                <CartDrawer />
-                <WhatsAppFloatingButton />
-              </SmoothScrollProvider>
-            </CartProvider>
+            <BrowserCacheProvider>
+              <CartProvider>
+                <SmoothScrollProvider>
+                  <MagneticCursor />
+                  <Navbar />
+                  <main className="flex-1 w-full">{children}</main>
+                  <Footer />
+                  <CartDrawer />
+                  <WhatsAppFloatingButton />
+                </SmoothScrollProvider>
+              </CartProvider>
+            </BrowserCacheProvider>
           </StoreSettingsProvider>
         </AuthProvider>
       </body>

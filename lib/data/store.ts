@@ -1,6 +1,13 @@
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
 import { Product, Category, Order, OrderStatus, ProductImage, ProductVariant, Lookbook } from '@/types/database';
 import { SEED_CATEGORIES, SEED_PRODUCTS, SEED_ORDERS, SEED_LOOKBOOKS } from './seed-products';
+import {
+  getBrowserCache,
+  setBrowserCache,
+  invalidateBrowserCache,
+  cacheBrowserImage,
+  cacheBrowserImages,
+} from './browser-cache';
 
 // Local storage keys for local fallback store
 const STORAGE_KEY_PRODUCTS = 'st_clothing_products_v1';
@@ -71,6 +78,14 @@ function saveLocalLookbooks(lookbooks: Lookbook[]) {
 // -----------------------------------------------------------------------------
 
 export async function getCategories(): Promise<Category[]> {
+  const cacheKey = 'categories';
+  if (typeof window !== 'undefined') {
+    const cached = await getBrowserCache<Category[]>(cacheKey);
+    if (cached && !cached.isStale) {
+      return cached.data;
+    }
+  }
+
   if (isSupabaseConfigured()) {
     const supabase = createClient();
     const { data, error } = await supabase
@@ -79,7 +94,12 @@ export async function getCategories(): Promise<Category[]> {
       .order('sort_order', { ascending: true });
 
     if (!error && data) {
-      return data as Category[];
+      const cats = data as Category[];
+      if (typeof window !== 'undefined') {
+        setBrowserCache(cacheKey, cats, 15 * 60 * 1000);
+        cacheBrowserImages(cats.map((c) => c.image_url));
+      }
+      return cats;
     }
     if (error) {
       console.error('Error fetching categories from database:', error);
@@ -101,6 +121,10 @@ export async function createCategory(category: Partial<Category>): Promise<Categ
     sort_order: category.sort_order || 99,
     created_at: new Date().toISOString(),
   };
+
+  if (typeof window !== 'undefined') {
+    invalidateBrowserCache('categories');
+  }
 
   if (isSupabaseConfigured()) {
     const supabase = createClient();
@@ -127,6 +151,14 @@ export async function getProducts(options?: {
   featuredOnly?: boolean;
   newArrivalsOnly?: boolean;
 }): Promise<Product[]> {
+  const cacheKey = `products_${JSON.stringify(options || {})}`;
+  if (typeof window !== 'undefined') {
+    const cached = await getBrowserCache<Product[]>(cacheKey);
+    if (cached && !cached.isStale) {
+      return cached.data;
+    }
+  }
+
   if (isSupabaseConfigured()) {
     const supabase = createClient();
     let query = supabase
@@ -159,6 +191,19 @@ export async function getProducts(options?: {
       if (options?.categorySlug && options.categorySlug !== 'all') {
         results = results.filter((p) => p.category?.slug === options.categorySlug);
       }
+
+      if (typeof window !== 'undefined') {
+        setBrowserCache(cacheKey, results, 10 * 60 * 1000);
+        // Pre-cache all loaded product images in browser cache
+        const allImgs: string[] = [];
+        results.forEach((p) => {
+          p.images?.forEach((img) => {
+            if (img.image_url) allImgs.push(img.image_url);
+          });
+        });
+        cacheBrowserImages(allImgs);
+      }
+
       return results;
     }
     if (error) {
@@ -191,6 +236,14 @@ export async function getProducts(options?: {
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
+  const cacheKey = `product_slug_${slug}`;
+  if (typeof window !== 'undefined') {
+    const cached = await getBrowserCache<Product>(cacheKey);
+    if (cached && !cached.isStale) {
+      return cached.data;
+    }
+  }
+
   if (isSupabaseConfigured()) {
     const supabase = createClient();
     const { data, error } = await supabase
@@ -205,7 +258,12 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
       .maybeSingle();
 
     if (!error && data) {
-      return data as Product;
+      const prod = data as Product;
+      if (typeof window !== 'undefined') {
+        setBrowserCache(cacheKey, prod, 15 * 60 * 1000);
+        cacheBrowserImages(prod.images?.map((i) => i.image_url) || []);
+      }
+      return prod;
     }
     if (error) {
       console.error(`Error fetching product by slug ${slug}:`, error);
@@ -219,6 +277,14 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
 }
 
 export async function getProductById(id: string): Promise<Product | null> {
+  const cacheKey = `product_id_${id}`;
+  if (typeof window !== 'undefined') {
+    const cached = await getBrowserCache<Product>(cacheKey);
+    if (cached && !cached.isStale) {
+      return cached.data;
+    }
+  }
+
   if (isSupabaseConfigured()) {
     const supabase = createClient();
     const { data, error } = await supabase
@@ -233,7 +299,12 @@ export async function getProductById(id: string): Promise<Product | null> {
       .maybeSingle();
 
     if (!error && data) {
-      return data as Product;
+      const prod = data as Product;
+      if (typeof window !== 'undefined') {
+        setBrowserCache(cacheKey, prod, 15 * 60 * 1000);
+        cacheBrowserImages(prod.images?.map((i) => i.image_url) || []);
+      }
+      return prod;
     }
     if (error) {
       console.error(`Error fetching product by id ${id}:`, error);
@@ -336,6 +407,11 @@ export async function createProduct(
       if (formattedVariants.length > 0) {
         await supabase.from('product_variants').insert(formattedVariants);
       }
+
+      if (typeof window !== 'undefined') {
+        invalidateBrowserCache('product');
+      }
+
       return newProduct;
     }
   }
@@ -347,6 +423,11 @@ export async function createProduct(
 
   const updatedProducts = [newProduct, ...store.products];
   saveLocalProducts(updatedProducts);
+
+  if (typeof window !== 'undefined') {
+    invalidateBrowserCache('product');
+  }
+
   return newProduct;
 }
 
@@ -367,6 +448,10 @@ export async function updateProduct(
   }
 ): Promise<Product | null> {
   const now = new Date().toISOString();
+
+  if (typeof window !== 'undefined') {
+    invalidateBrowserCache('product');
+  }
 
   if (isSupabaseConfigured()) {
     const supabase = createClient();
@@ -476,6 +561,10 @@ export async function updateProduct(
 }
 
 export async function deleteProduct(id: string): Promise<boolean> {
+  if (typeof window !== 'undefined') {
+    invalidateBrowserCache('product');
+  }
+
   if (isSupabaseConfigured()) {
     const supabase = createClient();
     // Fetch image storage paths to clean up if any
@@ -677,6 +766,14 @@ export async function updateOrderStatus(orderId: string, status: OrderStatus): P
 // -----------------------------------------------------------------------------
 
 export async function getLookbooks(options?: { publishedOnly?: boolean }): Promise<Lookbook[]> {
+  const cacheKey = `lookbooks_${JSON.stringify(options || {})}`;
+  if (typeof window !== 'undefined') {
+    const cached = await getBrowserCache<Lookbook[]>(cacheKey);
+    if (cached && !cached.isStale) {
+      return cached.data;
+    }
+  }
+
   if (isSupabaseConfigured()) {
     const supabase = createClient();
     let query = supabase.from('lookbooks').select('*').order('sort_order', { ascending: true });
@@ -687,7 +784,12 @@ export async function getLookbooks(options?: { publishedOnly?: boolean }): Promi
 
     const { data, error } = await query;
     if (!error && data) {
-      return data as Lookbook[];
+      const lookbooks = data as Lookbook[];
+      if (typeof window !== 'undefined') {
+        setBrowserCache(cacheKey, lookbooks, 15 * 60 * 1000);
+        cacheBrowserImages(lookbooks.map((l) => l.image_url).filter(Boolean));
+      }
+      return lookbooks;
     }
     if (error) {
       console.error('Error fetching lookbooks from database:', error);
@@ -700,15 +802,31 @@ export async function getLookbooks(options?: { publishedOnly?: boolean }): Promi
   if (options?.publishedOnly) {
     list = list.filter((item) => item.published !== false);
   }
-  return [...list].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+  const localLookbooks = [...list].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+  return localLookbooks;
 }
 
 export async function getLookbookById(id: string): Promise<Lookbook | null> {
+  const cacheKey = `lookbook_id_${id}`;
+  if (typeof window !== 'undefined') {
+    const cached = await getBrowserCache<Lookbook>(cacheKey);
+    if (cached && !cached.isStale) {
+      return cached.data;
+    }
+  }
+
   if (isSupabaseConfigured()) {
     const supabase = createClient();
     const { data, error } = await supabase.from('lookbooks').select('*').eq('id', id).maybeSingle();
     if (!error && data) {
-      return data as Lookbook;
+      const lookbook = data as Lookbook;
+      if (typeof window !== 'undefined') {
+        setBrowserCache(cacheKey, lookbook, 15 * 60 * 1000);
+        if (lookbook.image_url) {
+          cacheBrowserImage(lookbook.image_url);
+        }
+      }
+      return lookbook;
     }
     if (error) {
       console.error(`Error fetching lookbook by id ${id}:`, error);
@@ -724,6 +842,10 @@ export async function getLookbookById(id: string): Promise<Lookbook | null> {
 export async function createLookbook(lookbookData: Partial<Lookbook>): Promise<Lookbook> {
   const id = lookbookData.id || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `lookbook-${Date.now()}`);
   const now = new Date().toISOString();
+
+  if (typeof window !== 'undefined') {
+    invalidateBrowserCache('lookbook');
+  }
 
   const newLookbook: Lookbook = {
     id,
@@ -746,6 +868,10 @@ export async function createLookbook(lookbookData: Partial<Lookbook>): Promise<L
     const supabase = createClient();
     const { data, error } = await supabase.from('lookbooks').insert([newLookbook]).select().single();
     if (!error && data) {
+      if (typeof window !== 'undefined') {
+        invalidateBrowserCache('lookbook');
+        if (data.image_url) cacheBrowserImage(data.image_url);
+      }
       return data as Lookbook;
     }
   }
@@ -758,6 +884,10 @@ export async function createLookbook(lookbookData: Partial<Lookbook>): Promise<L
 
 export async function updateLookbook(id: string, lookbookData: Partial<Lookbook>): Promise<Lookbook | null> {
   const now = new Date().toISOString();
+
+  if (typeof window !== 'undefined') {
+    invalidateBrowserCache('lookbook');
+  }
 
   if (isSupabaseConfigured()) {
     const supabase = createClient();
@@ -772,6 +902,10 @@ export async function updateLookbook(id: string, lookbookData: Partial<Lookbook>
       .single();
 
     if (!error && data) {
+      if (typeof window !== 'undefined') {
+        invalidateBrowserCache('lookbook');
+        if (data.image_url) cacheBrowserImage(data.image_url);
+      }
       return data as Lookbook;
     }
   }
@@ -792,6 +926,10 @@ export async function updateLookbook(id: string, lookbookData: Partial<Lookbook>
 }
 
 export async function deleteLookbook(id: string): Promise<boolean> {
+  if (typeof window !== 'undefined') {
+    invalidateBrowserCache('lookbook');
+  }
+
   if (isSupabaseConfigured()) {
     const supabase = createClient();
     const { error } = await supabase.from('lookbooks').delete().eq('id', id);
