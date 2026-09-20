@@ -58,6 +58,7 @@ export function Navbar() {
     { label: 'COLLECTIONS', href: '/shop' },
     { label: 'NEW IN', href: '/shop?filter=new' },
     { label: 'LOOKBOOK', href: '/lookbook' },
+    { label: 'TRACK ORDER', href: '/track' },
     { label: 'ABOUT', href: '/about' },
     { label: 'CONTACT', href: '/contact' },
   ];

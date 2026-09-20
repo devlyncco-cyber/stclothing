@@ -693,6 +693,21 @@ export async function getOrders(): Promise<Order[]> {
   return store.orders;
 }
 
+function isValidUuid(str: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
+}
+
+function generateUuid(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 export async function createOrder(orderData: {
   customer_name: string;
   customer_email: string;
@@ -713,16 +728,16 @@ export async function createOrder(orderData: {
     image_url?: string;
   }[];
 }): Promise<Order> {
-  const orderId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `ord-${Date.now()}`;
+  const orderId = generateUuid();
   const now = new Date().toISOString();
 
-  const formattedItems = orderData.items.map((item, idx) => ({
-    id: `item-${Date.now()}-${idx}`,
+  const formattedItems = orderData.items.map((item) => ({
+    id: generateUuid(),
     order_id: orderId,
-    product_id: item.product_id || null,
+    product_id: item.product_id && isValidUuid(item.product_id) ? item.product_id : null,
     product_name: item.product_name,
-    quantity: item.quantity,
-    price: item.price,
+    quantity: Number(item.quantity) || 1,
+    price: Number(item.price) || 0,
     size: item.size || null,
     color: item.color || null,
     image_url: item.image_url || null,
@@ -737,8 +752,8 @@ export async function createOrder(orderData: {
     delivery_address: orderData.delivery_address,
     city: orderData.city || null,
     postal_code: orderData.postal_code || null,
-    country: orderData.country || 'United States',
-    total_amount: orderData.total_amount,
+    country: orderData.country || 'Ghana',
+    total_amount: Number(orderData.total_amount) || 0,
     status: 'pending',
     notes: orderData.notes || null,
     created_at: now,
@@ -747,32 +762,39 @@ export async function createOrder(orderData: {
   };
 
   if (isSupabaseConfigured()) {
-    const supabase = createClient();
-    const { data: ord, error: ordErr } = await supabase
-      .from('orders')
-      .insert([
+    try {
+      const supabase = createClient();
+      const { error: ordErr } = await supabase.from('orders').insert([
         {
           id: orderId,
           customer_name: orderData.customer_name,
           customer_email: orderData.customer_email,
-          customer_phone: orderData.customer_phone,
+          customer_phone: orderData.customer_phone || null,
           delivery_address: orderData.delivery_address,
-          city: orderData.city,
-          postal_code: orderData.postal_code,
-          country: orderData.country,
-          total_amount: orderData.total_amount,
+          city: orderData.city || null,
+          postal_code: orderData.postal_code || null,
+          country: orderData.country || 'Ghana',
+          total_amount: Number(orderData.total_amount) || 0,
           status: 'pending',
-          notes: orderData.notes,
+          notes: orderData.notes || null,
+          created_at: now,
+          updated_at: now,
         },
-      ])
-      .select()
-      .single();
+      ]);
 
-    if (!ordErr) {
-      if (formattedItems.length > 0) {
-        await supabase.from('order_items').insert(formattedItems);
+      if (ordErr) {
+        console.error('Supabase order insert error:', ordErr);
+      } else {
+        if (formattedItems.length > 0) {
+          const { error: itemsErr } = await supabase.from('order_items').insert(formattedItems);
+          if (itemsErr) {
+            console.error('Supabase order_items insert error:', itemsErr);
+          }
+        }
+        return newOrder;
       }
-      return newOrder;
+    } catch (e) {
+      console.error('Exception during Supabase order insertion:', e);
     }
   }
 
@@ -780,6 +802,73 @@ export async function createOrder(orderData: {
   const updatedOrders = [newOrder, ...store.orders];
   saveLocalOrders(updatedOrders);
   return newOrder;
+}
+
+export async function getOrderById(id: string): Promise<Order | null> {
+  const cleanId = id.trim();
+  if (!cleanId) return null;
+
+  if (isSupabaseConfigured()) {
+    const supabase = createClient();
+    let query = supabase.from('orders').select('*, items:order_items(*)');
+    if (isValidUuid(cleanId)) {
+      query = query.eq('id', cleanId);
+    } else {
+      query = query.ilike('id', `${cleanId}%`);
+    }
+
+    const { data, error } = await query.maybeSingle();
+    if (!error && data) {
+      return data as Order;
+    }
+    if (error) {
+      console.error(`Error fetching order by id ${cleanId}:`, error);
+    }
+  }
+
+  const store = getLocalStore();
+  const found = (store.orders || []).find(
+    (o) => o.id.toLowerCase() === cleanId.toLowerCase() || o.id.toLowerCase().startsWith(cleanId.toLowerCase())
+  );
+  return found || null;
+}
+
+export async function trackOrder(searchTerm: string): Promise<Order[]> {
+  const term = searchTerm.trim();
+  if (!term) return [];
+
+  if (isSupabaseConfigured()) {
+    const supabase = createClient();
+    let query = supabase.from('orders').select('*, items:order_items(*)');
+
+    if (isValidUuid(term)) {
+      query = query.eq('id', term);
+    } else if (term.includes('@')) {
+      query = query.ilike('customer_email', `%${term}%`);
+    } else if (term.replace(/[^0-9]/g, '').length >= 7) {
+      query = query.ilike('customer_phone', `%${term.replace(/[^0-9]/g, '')}%`);
+    } else {
+      query = query.ilike('id', `${term}%`);
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
+    if (!error && data) {
+      return data as Order[];
+    }
+    if (error) {
+      console.error('Error tracking order from database:', error);
+    }
+  }
+
+  const store = getLocalStore();
+  const lower = term.toLowerCase();
+  const cleanPhone = term.replace(/[^0-9]/g, '');
+  return (store.orders || []).filter(
+    (o) =>
+      o.id.toLowerCase().includes(lower) ||
+      o.customer_email.toLowerCase().includes(lower) ||
+      (cleanPhone.length >= 6 && o.customer_phone && o.customer_phone.replace(/[^0-9]/g, '').includes(cleanPhone))
+  );
 }
 
 export async function updateOrderStatus(orderId: string, status: OrderStatus): Promise<boolean> {

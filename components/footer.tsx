@@ -145,6 +145,11 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/track" className="hover:text-clay text-bone font-bold transition-colors">
+                  TRACK ORDER
+                </Link>
+              </li>
+              <li>
                 <Link href="/about" className="hover:text-bone transition-colors">
                   BRAND STORY
                 </Link>
