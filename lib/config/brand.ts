@@ -59,18 +59,20 @@ export function generateProductWhatsAppUrl(params: {
   price: number;
   productSlug: string;
   phone?: string;
+  showPrices?: boolean;
 }): string {
   const phone = params.phone || '233544911015';
+  const showPrices = params.showPrices !== undefined ? params.showPrices : true;
   const currentOrigin = typeof window !== 'undefined' && window.location?.origin
     ? window.location.origin
     : (process.env.NEXT_PUBLIC_SITE_URL || '');
   const productUrl = currentOrigin ? `${currentOrigin}/product/${params.productSlug}` : `/product/${params.productSlug}`;
   
+  const priceLine = showPrices ? `\nPrice: GH₵ ${params.price * params.quantity}` : '';
   const text = `Hello ST Clothing, I'd like to order:
 Product: ${params.productName}
 Size: ${params.size}${params.color ? `\nColor: ${params.color}` : ''}
-Qty: ${params.quantity}
-Price: GH₵ ${params.price * params.quantity}
+Qty: ${params.quantity}${priceLine}
 Link: ${productUrl}`;
 
   return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
@@ -79,23 +81,31 @@ Link: ${productUrl}`;
 /**
  * Generate a prefilled WhatsApp checkout URL for an entire shopping bag
  */
-export function generateCartWhatsAppUrl(items: Array<{
-  name: string;
-  size: string;
-  color?: string;
-  quantity: number;
-  price: number;
-}>, total: number, phone = '233544911015'): string {
+export function generateCartWhatsAppUrl(
+  items: Array<{
+    name: string;
+    size: string;
+    color?: string;
+    quantity: number;
+    price: number;
+  }>,
+  total: number,
+  phone = '233544911015',
+  showPrices = true
+): string {
   const itemsList = items
-    .map((item, idx) => `${idx + 1}. ${item.name} (Size: ${item.size}${item.color ? `, ${item.color}` : ''}) x${item.quantity} — GH₵ ${item.price * item.quantity}`)
+    .map((item, idx) =>
+      showPrices
+        ? `${idx + 1}. ${item.name} (Size: ${item.size}${item.color ? `, ${item.color}` : ''}) x${item.quantity} — GH₵ ${item.price * item.quantity}`
+        : `${idx + 1}. ${item.name} (Size: ${item.size}${item.color ? `, ${item.color}` : ''}) x${item.quantity}`
+    )
     .join('\n');
 
+  const totalLine = showPrices ? `\nTotal: GH₵ ${total}\n` : '\n';
   const text = `Hello ST Clothing, I would like to place an order:
 
 ${itemsList}
-
-Total: GH₵ ${total}
-Delivery Location: [Please specify your location in Tema/Accra/Ghana]
+${totalLine}Delivery Location: [Please specify your location in Tema/Accra/Ghana]
 Payment Method: [Mobile Money / Pay on Delivery]`;
 
   return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;

@@ -1,9 +1,12 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowUpRight } from 'lucide-react';
 import { Product } from '@/types/database';
 import { formatPrice } from '@/lib/utils';
+import { useStoreSettings } from '@/lib/context/store-settings-context';
 
 interface CuratedCapsuleProps {
   products: Product[];
@@ -16,6 +19,8 @@ export function CuratedCapsule({
   title = 'FRESH DROPS & LIMITED RUNS',
   subtitle = 'AUTUMN CAPSULE / EDITION ARCHIVE',
 }: CuratedCapsuleProps) {
+  const { settings } = useStoreSettings();
+
   return (
     <section className="py-28 bg-linen-100 text-slate-ink border-b border-linen-300 grain-overlay">
       <div className="max-w-[1720px] mx-auto px-4 sm:px-8 lg:px-16">
@@ -73,9 +78,15 @@ export function CuratedCapsule({
                     <span className="text-[10px] text-slate-muted uppercase tracking-ultra">
                       {product.category?.name || 'STUDIO PIECE'}
                     </span>
-                    <span className="font-semibold text-slate-ink">
-                      {formatPrice(product.price)}
-                    </span>
+                    {settings.showPrices ? (
+                      <span className="font-semibold text-slate-ink">
+                        {formatPrice(product.price)}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-muted uppercase tracking-wider font-medium">
+                        Price on Request
+                      </span>
+                    )}
                   </div>
 
                   <Link

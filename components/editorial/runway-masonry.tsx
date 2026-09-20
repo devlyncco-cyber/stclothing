@@ -7,6 +7,7 @@ import { ArrowUpRight, Plus, Check } from 'lucide-react';
 import { Product, Category } from '@/types/database';
 import { formatPrice } from '@/lib/utils';
 import { useCart } from '@/lib/context/cart-context';
+import { useStoreSettings } from '@/lib/context/store-settings-context';
 
 interface RunwayMasonryProps {
   products: Product[];
@@ -17,6 +18,7 @@ export function RunwayMasonry({ products, categories }: RunwayMasonryProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [addedId, setAddedId] = useState<string | null>(null);
   const { addItem, openCart } = useCart();
+  const { settings } = useStoreSettings();
 
   const filteredProducts =
     selectedCategory === 'all'
@@ -173,29 +175,31 @@ export function RunwayMasonry({ products, categories }: RunwayMasonryProps) {
                 </Link>
 
                 {/* Quick Add Floating Button */}
-                <button
-                  type="button"
-                  onClick={(e) => handleQuickAdd(e, product)}
-                  data-cursor="ADD"
-                  className={`absolute bottom-4 right-4 z-20 flex items-center gap-2 px-3.5 py-2 font-mono text-[10px] uppercase tracking-spec transition-all duration-300 shadow-md ${
-                    isAdded
-                      ? 'bg-editorial-olive text-white'
-                      : 'bg-linen-100/95 text-slate-ink hover:bg-slate-ink hover:text-linen-100 border border-linen-300'
-                  }`}
-                  aria-label={`Quick add ${product.name} to bag`}
-                >
-                  {isAdded ? (
-                    <>
-                      <Check className="w-3.5 h-3.5" />
-                      <span>ADDED</span>
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>BAG</span>
-                    </>
-                  )}
-                </button>
+                {settings.ordersEnabled && settings.bagEnabled && (
+                  <button
+                    type="button"
+                    onClick={(e) => handleQuickAdd(e, product)}
+                    data-cursor="ADD"
+                    className={`absolute bottom-4 right-4 z-20 flex items-center gap-2 px-3.5 py-2 font-mono text-[10px] uppercase tracking-spec transition-all duration-300 shadow-md ${
+                      isAdded
+                        ? 'bg-editorial-olive text-white'
+                        : 'bg-linen-100/95 text-slate-ink hover:bg-slate-ink hover:text-linen-100 border border-linen-300'
+                    }`}
+                    aria-label={`Quick add ${product.name} to bag`}
+                  >
+                    {isAdded ? (
+                      <>
+                        <Check className="w-3.5 h-3.5" />
+                        <span>ADDED</span>
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>BAG</span>
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
 
               {/* Garment Editorial Metadata */}
@@ -204,9 +208,15 @@ export function RunwayMasonry({ products, categories }: RunwayMasonryProps) {
                   <span className="text-[10px] font-mono tracking-ultra uppercase text-slate-muted">
                     {product.category?.name || 'STUDIO ARCHIVE'}
                   </span>
-                  <span className="text-xs font-mono font-medium tracking-spec text-slate-ink">
-                    {formatPrice(product.price)}
-                  </span>
+                  {settings.showPrices ? (
+                    <span className="text-xs font-mono font-medium tracking-spec text-slate-ink">
+                      {formatPrice(product.price)}
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-mono tracking-wider uppercase text-slate-muted">
+                      Price on Request
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-between pt-1">

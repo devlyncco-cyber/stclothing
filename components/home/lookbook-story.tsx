@@ -5,6 +5,7 @@ import { ArrowUpRight, MessageCircle } from 'lucide-react';
 import { Product } from '@/types/database';
 import { formatPrice } from '@/lib/utils';
 import { generateProductWhatsAppUrl } from '@/lib/config/brand';
+import { useStoreSettings } from '@/lib/context/store-settings-context';
 
 interface LookbookStoryProps {
   calloutProducts: Product[];
@@ -12,6 +13,7 @@ interface LookbookStoryProps {
 
 export function LookbookStory({ calloutProducts }: LookbookStoryProps) {
   const displayProducts = calloutProducts.slice(0, 3);
+  const { settings } = useStoreSettings();
 
   return (
     <section className="py-28 bg-bone text-ink border-b border-stone-border select-none gallery-canvas">
@@ -85,6 +87,7 @@ export function LookbookStory({ calloutProducts }: LookbookStoryProps) {
                   quantity: 1,
                   price: product.price,
                   productSlug: product.slug,
+                  showPrices: settings.showPrices,
                 });
 
                 return (
@@ -118,9 +121,15 @@ export function LookbookStory({ calloutProducts }: LookbookStoryProps) {
                         >
                           {product.name}
                         </Link>
-                        <p className="font-mono text-xs font-semibold text-ink pt-0.5">
-                          {formatPrice(product.price)}
-                        </p>
+                        {settings.showPrices ? (
+                          <p className="font-mono text-xs font-semibold text-ink pt-0.5">
+                            {formatPrice(product.price)}
+                          </p>
+                        ) : (
+                          <p className="font-mono text-[10px] text-stone-dark uppercase tracking-wider font-medium pt-0.5">
+                            Price on Request
+                          </p>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-3 pt-1">

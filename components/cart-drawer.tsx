@@ -25,7 +25,8 @@ export function CartDrawer() {
       price: item.price,
     })),
     subtotal,
-    primaryWa
+    primaryWa,
+    settings.showPrices
   );
 
   return (
@@ -153,9 +154,15 @@ export function CartDrawer() {
                         </div>
 
                         {/* Price in GH₵ */}
-                        <span className="text-xs font-semibold text-ink tracking-wider">
-                          {formatPrice(item.price * item.quantity)}
-                        </span>
+                        {settings.showPrices ? (
+                          <span className="text-xs font-semibold text-ink tracking-wider">
+                            {formatPrice(item.price * item.quantity)}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-stone-dark uppercase tracking-wider font-medium">
+                            Price on Request
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -170,7 +177,11 @@ export function CartDrawer() {
               <div className="space-y-1 text-xs tracking-wider">
                 <div className="flex justify-between text-stone-dark">
                   <span>Subtotal</span>
-                  <span className="font-semibold text-ink text-sm">{formatPrice(subtotal)}</span>
+                  {settings.showPrices ? (
+                    <span className="font-semibold text-ink text-sm">{formatPrice(subtotal)}</span>
+                  ) : (
+                    <span className="font-semibold text-stone-dark text-xs uppercase tracking-wider">Inquire for Quote</span>
+                  )}
                 </div>
                 <div className="flex justify-between text-stone text-[10px]">
                   <span>Delivery in {settings.city || 'Tema'} / {settings.region || 'Accra'}</span>

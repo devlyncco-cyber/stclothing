@@ -5,9 +5,10 @@ import { BRAND_CONFIG } from '@/lib/config/brand';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
 
 export interface StoreSettings {
-  // Ordering & Bag Controls
+  // Ordering, Pricing & Bag Controls
   ordersEnabled: boolean;
   bagEnabled: boolean;
+  showPrices: boolean;
   orderingDisabledNotice: string;
 
   // General Store Identity
@@ -49,6 +50,7 @@ export interface StoreSettings {
 export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   ordersEnabled: true,
   bagEnabled: true,
+  showPrices: true,
   orderingDisabledNotice: 'Online orders are temporarily paused for drop preparation. Showcase browsing active.',
 
   storeName: BRAND_CONFIG.name,
@@ -100,6 +102,7 @@ function mapRowToSettings(row: any): Partial<StoreSettings> {
 
   if (row.orders_enabled !== undefined && row.orders_enabled !== null) mapped.ordersEnabled = row.orders_enabled;
   if (row.bag_enabled !== undefined && row.bag_enabled !== null) mapped.bagEnabled = row.bag_enabled;
+  if (row.show_prices !== undefined && row.show_prices !== null) mapped.showPrices = row.show_prices;
   if (row.ordering_disabled_notice) mapped.orderingDisabledNotice = row.ordering_disabled_notice;
   if (row.store_name) mapped.storeName = row.store_name;
   if (row.tagline) mapped.tagline = row.tagline;
@@ -135,6 +138,7 @@ function mapSettingsToRow(settings: StoreSettings) {
     id: 'default',
     orders_enabled: settings.ordersEnabled,
     bag_enabled: settings.bagEnabled,
+    show_prices: settings.showPrices,
     ordering_disabled_notice: settings.orderingDisabledNotice,
     store_name: settings.storeName,
     tagline: settings.tagline,

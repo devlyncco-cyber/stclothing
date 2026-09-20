@@ -331,6 +331,7 @@ create table if not exists public.store_settings (
     -- Feature Toggles & Controls
     orders_enabled boolean not null default true,
     bag_enabled boolean not null default true,
+    show_prices boolean not null default true,
     ordering_disabled_notice text default 'Online orders are temporarily paused for drop preparation. Showcase browsing active.',
     
     -- Brand Identity & Styling
@@ -415,6 +416,7 @@ insert into public.store_settings (
     id,
     orders_enabled,
     bag_enabled,
+    show_prices,
     ordering_disabled_notice,
     store_name,
     tagline,
@@ -444,6 +446,7 @@ insert into public.store_settings (
     settings
 ) values (
     'default',
+    true,
     true,
     true,
     'Online orders are temporarily paused for drop preparation. Showcase browsing active.',

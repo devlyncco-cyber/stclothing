@@ -164,13 +164,21 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
         </Link>
 
         {/* Price in GH₵ */}
-        <div className="flex items-center gap-2 font-mono text-xs pt-0.5">
-          <span className="font-semibold text-ink tracking-spec">
-            {formatPrice(product.price)}
-          </span>
-          {product.compare_at_price && product.compare_at_price > product.price && (
-            <span className="text-stone line-through tracking-spec">
-              {formatPrice(product.compare_at_price)}
+        <div className="flex items-center gap-2 font-mono text-xs pt-0.5 min-h-[1.25rem]">
+          {settings.showPrices ? (
+            <>
+              <span className="font-semibold text-ink tracking-spec">
+                {formatPrice(product.price)}
+              </span>
+              {product.compare_at_price && product.compare_at_price > product.price && (
+                <span className="text-stone line-through tracking-spec">
+                  {formatPrice(product.compare_at_price)}
+                </span>
+              )}
+            </>
+          ) : (
+            <span className="text-stone-dark text-[10px] uppercase tracking-wider font-medium">
+              Price on Request
             </span>
           )}
         </div>

@@ -7,6 +7,7 @@ import { ArrowLeft, ArrowRight, ArrowUpRight, MessageCircle } from 'lucide-react
 import { Product } from '@/types/database';
 import { formatPrice } from '@/lib/utils';
 import { generateProductWhatsAppUrl } from '@/lib/config/brand';
+import { useStoreSettings } from '@/lib/context/store-settings-context';
 
 interface HorizontalCollectionRailProps {
   products: Product[];
@@ -20,6 +21,7 @@ export function HorizontalCollectionRail({
   subtitle = 'CURATED EDITIONS / TEMA STUDIO',
 }: HorizontalCollectionRailProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const { settings } = useStoreSettings();
 
   const scroll = (direction: 'left' | 'right') => {
     if (scrollContainerRef.current) {
@@ -94,6 +96,7 @@ export function HorizontalCollectionRail({
               quantity: 1,
               price: product.price,
               productSlug: product.slug,
+              showPrices: settings.showPrices,
             });
 
             return (
@@ -127,9 +130,15 @@ export function HorizontalCollectionRail({
                     <span className="text-[10px] text-stone uppercase tracking-ultra font-medium">
                       {product.category?.name || 'STUDIO PIECE'}
                     </span>
-                    <span className="font-semibold text-ink">
-                      {formatPrice(product.price)}
-                    </span>
+                    {settings.showPrices ? (
+                      <span className="font-semibold text-ink">
+                        {formatPrice(product.price)}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-stone-dark uppercase tracking-wider font-medium">
+                        Price on Request
+                      </span>
+                    )}
                   </div>
 
                   <Link

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStoreSettings, StoreSettings } from '@/lib/context/store-settings-context';
 import {
   Settings,
@@ -18,6 +18,7 @@ import {
   Eye,
   Sliders,
   Palette,
+  Tag,
 } from 'lucide-react';
 
 export default function AdminSettingsPage() {
@@ -27,6 +28,11 @@ export default function AdminSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Synchronize form if settings load asynchronously
+  useEffect(() => {
+    setFormData(settings);
+  }, [settings]);
 
   // Pre-configured collection accent palette
   const presetAccents = [
@@ -209,58 +215,88 @@ export default function AdminSettingsPage() {
             <div className="border-b border-neutral-100 pb-4">
               <h2 className="text-base font-bold uppercase tracking-wider text-neutral-900 flex items-center gap-2">
                 <Sliders className="w-4 h-4 text-neutral-900" />
-                <span>Frontend Ordering &amp; Bag Switch</span>
+                <span>Commerce, Pricing &amp; Bag Switches</span>
               </h2>
               <p className="text-xs text-neutral-500 mt-1">
-                Control whether customers can place WhatsApp orders or add items to their shopping bag.
+                Control WhatsApp ordering, shopping bag visibility, and whether product prices appear across the storefront.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Orders Toggle */}
-              <div className="p-5 border border-neutral-200 bg-neutral-50 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-xs uppercase font-bold text-neutral-900">
-                    Accept WhatsApp Orders
-                  </span>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.ordersEnabled}
-                      onChange={(e) => setFormData({ ...formData, ordersEnabled: e.target.checked })}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-neutral-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
-                  </label>
+              <div className="p-5 border border-neutral-200 bg-neutral-50 space-y-3 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-xs uppercase font-bold text-neutral-900">
+                      WhatsApp Ordering
+                    </span>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.ordersEnabled}
+                        onChange={(e) => setFormData({ ...formData, ordersEnabled: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-neutral-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                    </label>
+                  </div>
+                  <p className="text-xs text-neutral-600 leading-relaxed font-light mt-2.5">
+                    {formData.ordersEnabled
+                      ? 'ACTIVE. Direct WhatsApp ordering buttons and checkout triggers are active.'
+                      : 'PAUSED. Store operates in quiet Showcase / Catalog mode.'}
+                  </p>
                 </div>
-                <p className="text-xs text-neutral-600 leading-relaxed font-light">
-                  {formData.ordersEnabled
-                    ? 'Orders are ACTIVE. Customers see "Order on WhatsApp" and checkout triggers.'
-                    : 'Orders are DISABLED. The storefront operates in quiet Showcase / Catalog mode.'}
-                </p>
               </div>
 
               {/* Shopping Bag Toggle */}
-              <div className="p-5 border border-neutral-200 bg-neutral-50 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-xs uppercase font-bold text-neutral-900">
-                    Enable Shopping Bag (Cart)
-                  </span>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.bagEnabled}
-                      onChange={(e) => setFormData({ ...formData, bagEnabled: e.target.checked })}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-neutral-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-neutral-900"></div>
-                  </label>
+              <div className="p-5 border border-neutral-200 bg-neutral-50 space-y-3 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-xs uppercase font-bold text-neutral-900">
+                      Shopping Bag
+                    </span>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.bagEnabled}
+                        onChange={(e) => setFormData({ ...formData, bagEnabled: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-neutral-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-neutral-900"></div>
+                    </label>
+                  </div>
+                  <p className="text-xs text-neutral-600 leading-relaxed font-light mt-2.5">
+                    {formData.bagEnabled
+                      ? 'ACTIVE. Customers can add items to bag and browse the cart drawer.'
+                      : 'HIDDEN. Shopping bag icon is hidden from navbar and cards.'}
+                  </p>
                 </div>
-                <p className="text-xs text-neutral-600 leading-relaxed font-light">
-                  {formData.bagEnabled
-                    ? 'Shopping Bag is ACTIVE. Customers can save multiple items and view the cart drawer.'
-                    : 'Shopping Bag is HIDDEN. Removes bag icon from navbar and product cards.'}
-                </p>
+              </div>
+
+              {/* Price Display Toggle */}
+              <div className="p-5 border border-neutral-200 bg-neutral-50 space-y-3 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-xs uppercase font-bold text-neutral-900 flex items-center gap-1.5">
+                      <Tag className="w-3.5 h-3.5 text-neutral-700" />
+                      <span>Display Prices</span>
+                    </span>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.showPrices}
+                        onChange={(e) => setFormData({ ...formData, showPrices: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-neutral-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-neutral-900"></div>
+                    </label>
+                  </div>
+                  <p className="text-xs text-neutral-600 leading-relaxed font-light mt-2.5">
+                    {formData.showPrices
+                      ? 'VISIBLE. Product prices (GH₵) are displayed on all cards, lookbooks, and detail pages.'
+                      : 'HIDDEN. Prices are hidden across all pages (shows "Price on Request" for private drops).'}
+                  </p>
+                </div>
               </div>
             </div>
 

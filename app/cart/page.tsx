@@ -4,11 +4,13 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useCart } from '@/lib/context/cart-context';
+import { useStoreSettings } from '@/lib/context/store-settings-context';
 import { formatPrice } from '@/lib/utils';
 import { Plus, Minus, Trash2, ArrowRight, ShoppingBag, ShieldCheck } from 'lucide-react';
 
 export default function CartPage() {
   const { items, updateQuantity, removeItem, clearCart, totalItems, subtotal } = useCart();
+  const { settings } = useStoreSettings();
 
   const shipping = subtotal > 150 || subtotal === 0 ? 0 : 15;
   const estimatedTax = subtotal * 0.08;
@@ -94,9 +96,15 @@ export default function CartPage() {
                         <span className="mx-2">•</span>
                         <span>Color: <strong className="text-neutral-800">{item.color}</strong></span>
                       </div>
-                      <p className="text-xs font-semibold text-neutral-900 pt-1 tracking-wider">
-                        {formatPrice(item.price)} each
-                      </p>
+                      {settings.showPrices ? (
+                        <p className="text-xs font-semibold text-neutral-900 pt-1 tracking-wider">
+                          {formatPrice(item.price)} each
+                        </p>
+                      ) : (
+                        <p className="text-[10px] uppercase tracking-wider text-neutral-500 font-medium pt-1">
+                          Price on Request
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -130,7 +138,7 @@ export default function CartPage() {
 
                     {/* Total Price */}
                     <span className="text-sm font-bold tracking-wider text-black min-w-[80px] text-right">
-                      {formatPrice(item.price * item.quantity)}
+                      {settings.showPrices ? formatPrice(item.price * item.quantity) : 'Inquiry'}
                     </span>
 
                     {/* Delete */}
@@ -157,21 +165,27 @@ export default function CartPage() {
                 <div className="space-y-3 text-xs tracking-wider">
                   <div className="flex justify-between text-neutral-600">
                     <span>Subtotal</span>
-                    <span className="font-semibold text-neutral-900">{formatPrice(subtotal)}</span>
+                    <span className="font-semibold text-neutral-900">
+                      {settings.showPrices ? formatPrice(subtotal) : 'Inquire for Quote'}
+                    </span>
                   </div>
-                  <div className="flex justify-between text-neutral-600">
-                    <span>Estimated Shipping</span>
-                    <span>{shipping === 0 ? 'FREE' : formatPrice(shipping)}</span>
-                  </div>
-                  <div className="flex justify-between text-neutral-600">
-                    <span>Estimated Tax (8%)</span>
-                    <span>{formatPrice(estimatedTax)}</span>
-                  </div>
+                  {settings.showPrices && (
+                    <>
+                      <div className="flex justify-between text-neutral-600">
+                        <span>Estimated Shipping</span>
+                        <span>{shipping === 0 ? 'FREE' : formatPrice(shipping)}</span>
+                      </div>
+                      <div className="flex justify-between text-neutral-600">
+                        <span>Estimated Tax (8%)</span>
+                        <span>{formatPrice(estimatedTax)}</span>
+                      </div>
 
-                  <div className="border-t border-neutral-200 pt-3 flex justify-between text-sm font-black text-black tracking-widest">
-                    <span>Total</span>
-                    <span>{formatPrice(total)}</span>
-                  </div>
+                      <div className="border-t border-neutral-200 pt-3 flex justify-between text-sm font-black text-black tracking-widest">
+                        <span>Total</span>
+                        <span>{formatPrice(total)}</span>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 {shipping > 0 && (

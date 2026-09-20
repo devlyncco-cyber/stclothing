@@ -6,6 +6,7 @@ import { getProducts } from '@/lib/data/store';
 import { BRAND_CONFIG, generateProductWhatsAppUrl } from '@/lib/config/brand';
 import { formatPrice } from '@/lib/utils';
 import { KenteStrip } from '@/components/ui/kente-strip';
+import { PriceDisplay } from '@/components/ui/price-display';
 
 export const metadata = {
   title: 'Tema Lookbook | ST Clothing Ghana',
@@ -39,64 +40,56 @@ export default async function LookbookPage() {
       title: 'Sculpted Minimalist Outerwear',
       desc: 'Unbleached natural virgin wool blend and matte ripstop. Clean horn hardware and unlined drape that moves effortlessly with the body.',
       image: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=1800&q=85',
-      featuredSlug: products[1]?.slug || 'st-sculptural-hoodie',
-      productName: products[1]?.name || 'Sculptural Minimalist Hoodie',
-      price: products[1]?.price || 550,
+      featuredSlug: products[1]?.slug || 'st-structured-monochrome-hoodie',
+      productName: products[1]?.name || 'Structured Monochrome Hoodie',
+      price: products[1]?.price || 380,
     },
   ];
 
   return (
-    <div className="min-h-screen bg-bone pt-28 pb-24 font-sans select-none gallery-canvas text-ink">
+    <div className="min-h-screen bg-bone pt-28 sm:pt-36 pb-24 font-sans select-none gallery-canvas">
       <div className="max-w-[1720px] mx-auto px-4 sm:px-8 lg:px-16">
         {/* Header */}
-        <div className="max-w-3xl mb-16 border-b border-stone-border pb-8">
-          <span className="font-mono text-[10px] uppercase tracking-ultra text-stone font-semibold block mb-2">
-            EDITORIAL PUBLICATION // TEMA, GHANA
-          </span>
-          <h1 className="text-4xl sm:text-6xl md:text-7xl font-serif font-normal tracking-tight">
-            The Tema Lookbook
+        <div className="pb-12 mb-16 border-b border-stone-border space-y-4">
+          <div className="flex items-center gap-3">
+            <span className="font-mono text-xs uppercase tracking-ultra text-clay font-semibold">
+              ST CLOTHING ATELIER // TEMA, GHANA
+            </span>
+          </div>
+          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-serif font-normal tracking-tight text-ink">
+            Editorial Lookbook
           </h1>
-          <p className="text-sm sm:text-base font-sans font-light text-stone-dark mt-4 leading-relaxed">
-            A photographic study exploring quiet luxury, structural drape, and Ghanaian material honesty.
+          <p className="text-sm sm:text-base font-sans font-light text-stone-dark max-w-2xl leading-relaxed">
+            A visual anthology of form, fabric density, and coastal Ghanaian atmosphere. Shot on 35mm film across the harbor and architectural grids of Tema.
           </p>
         </div>
 
-        {/* Lookbook Spreads */}
-        <div className="space-y-24 sm:space-y-32">
+        {/* Lookbook Items */}
+        <div className="space-y-24 sm:space-y-36">
           {lookbookItems.map((item, idx) => {
-            const isEven = idx % 2 === 1;
-            const whatsAppUrl = generateProductWhatsAppUrl({
-              productName: item.productName,
-              size: 'M',
-              quantity: 1,
-              price: item.price,
-              productSlug: item.featuredSlug,
-            });
-
+            const isEven = idx % 2 === 0;
             return (
               <article
                 key={item.vol}
-                className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center border-b border-stone-border pb-20"
+                className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center"
               >
-                {/* Image (7 cols) */}
-                <div
-                  className={`lg:col-span-7 relative aspect-[4/5] sm:aspect-[16/11] bg-sand border border-stone-border overflow-hidden group ${
-                    isEven ? 'lg:order-2' : 'lg:order-1'
-                  }`}
-                >
-                  <Image
-                    src={item.image}
-                    alt={item.title}
-                    fill
-                    sizes="(max-width: 1024px) 100vw, 55vw"
-                    className="object-cover object-center transition-transform duration-1000 ease-editorial group-hover:scale-105"
-                  />
-                  <div className="absolute top-4 left-4 z-10 font-mono text-[9px] uppercase tracking-spec px-2.5 py-1 bg-bone/90 border border-stone-border">
-                    {item.vol} · TEMA ARCHIVE
+                {/* Image */}
+                <div className={`lg:col-span-7 ${isEven ? 'lg:order-2' : 'lg:order-1'}`}>
+                  <div className="relative aspect-[16/10] sm:aspect-[16/9] w-full bg-sand overflow-hidden border border-stone-border group">
+                    <Image
+                      src={item.image}
+                      alt={item.title}
+                      fill
+                      sizes="(max-width: 1024px) 100vw, 60vw"
+                      className="object-cover object-center group-hover:scale-105 transition-transform duration-1000 ease-editorial"
+                    />
+                    <div className="absolute top-4 left-4 font-mono text-[9px] uppercase tracking-spec px-3 py-1 bg-bone/95 text-ink border border-stone-border">
+                      {item.vol} · 35MM HARBOR ARCHIVE
+                    </div>
                   </div>
                 </div>
 
-                {/* Narrative & Featured Piece (5 cols) */}
+                {/* Content */}
                 <div className={`lg:col-span-5 space-y-6 ${isEven ? 'lg:order-1' : 'lg:order-2'}`}>
                   <span className="font-mono text-xs uppercase tracking-ultra text-clay font-semibold">
                     {item.vol} // EDITORIAL ESSAY
@@ -113,7 +106,7 @@ export default async function LookbookPage() {
                   <div className="p-4 bg-sand border border-stone-border space-y-2 font-mono">
                     <div className="flex justify-between items-baseline text-xs">
                       <span className="text-[10px] uppercase tracking-ultra text-stone">FEATURED PIECE</span>
-                      <span className="font-semibold text-ink">{formatPrice(item.price)}</span>
+                      <PriceDisplay price={item.price} className="text-xs" />
                     </div>
                     <p className="font-serif text-base text-ink">{item.productName}</p>
                     <div className="pt-2 flex items-center gap-3">

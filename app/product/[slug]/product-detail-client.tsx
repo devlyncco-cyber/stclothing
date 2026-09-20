@@ -61,12 +61,12 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
 
   // Build WhatsApp URL with live selected size, color, quantity and price
   const primaryWa = settings.primaryWhatsApp || '233544911015';
+  const priceLine = settings.showPrices ? `\n- Price: GH₵ ${product.price * quantity}` : '';
   const whatsAppOrderText = `Hello ${settings.storeName || 'ST Clothing'}, I want to order:
 - Product: ${product.name}
 - Size: ${selectedSize}
 - Color: ${selectedColor}
-- Qty: ${quantity}
-- Price: GH₵ ${product.price * quantity}
+- Qty: ${quantity}${priceLine}
 - Link: ${productUrl}`;
 
   const whatsAppOrderUrl = `https://wa.me/${primaryWa}?text=${encodeURIComponent(whatsAppOrderText)}`;
@@ -121,16 +121,24 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
         </h1>
 
         {/* Price in GH₵ */}
-        <div className="flex items-center gap-3 font-mono">
-          <span className="text-2xl sm:text-3xl font-semibold tracking-spec text-ink">
-            {formatPrice(product.price)}
-          </span>
-          {product.compare_at_price && product.compare_at_price > product.price && (
-            <span className="text-lg text-stone line-through tracking-spec">
-              {formatPrice(product.compare_at_price)}
+        {settings.showPrices ? (
+          <div className="flex items-center gap-3 font-mono">
+            <span className="text-2xl sm:text-3xl font-semibold tracking-spec text-ink">
+              {formatPrice(product.price)}
             </span>
-          )}
-        </div>
+            {product.compare_at_price && product.compare_at_price > product.price && (
+              <span className="text-lg text-stone line-through tracking-spec">
+                {formatPrice(product.compare_at_price)}
+              </span>
+            )}
+          </div>
+        ) : (
+          <div className="font-mono">
+            <span className="text-xs font-semibold tracking-wider text-stone-dark uppercase bg-sand px-3 py-1.5 border border-stone-border inline-block">
+              Price Available Upon Request
+            </span>
+          </div>
+        )}
 
         {/* Short Description */}
         <p className="text-sm font-sans font-light text-stone-dark leading-relaxed">
@@ -235,7 +243,9 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
                 className="w-full flex items-center justify-center gap-3 py-4 px-6 bg-emerald-700 hover:bg-emerald-800 text-white text-xs uppercase tracking-ultra font-semibold shadow-md transition-all duration-300 group"
               >
                 <MessageCircle className="w-5 h-5 fill-current" />
-                <span>Order on WhatsApp (GH₵ {product.price * quantity})</span>
+                <span>
+                  Order on WhatsApp{settings.showPrices ? ` (GH₵ ${product.price * quantity})` : ''}
+                </span>
               </a>
 
               {/* SECONDARY BUTTON: Add to Bag (if Bag is Enabled) */}

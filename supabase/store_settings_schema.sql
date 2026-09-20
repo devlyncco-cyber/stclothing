@@ -11,6 +11,7 @@ create table if not exists public.store_settings (
     -- Feature Toggles & Controls
     orders_enabled boolean not null default true,
     bag_enabled boolean not null default true,
+    show_prices boolean not null default true,
     ordering_disabled_notice text default 'Online orders are temporarily paused for drop preparation. Showcase browsing active.',
     
     -- Brand Identity & Styling
@@ -60,7 +61,11 @@ create table if not exists public.store_settings (
 comment on table public.store_settings is 'Stores global storefront configuration, order/bag feature toggles, and brand metadata';
 comment on column public.store_settings.orders_enabled is 'Toggles online/WhatsApp ordering on the front end';
 comment on column public.store_settings.bag_enabled is 'Toggles the shopping bag drawer and cart buttons';
+comment on column public.store_settings.show_prices is 'Toggles product prices visibility across all public storefront pages and lookbooks';
 comment on column public.store_settings.accent_color is 'Brand theme accent HEX color dynamically applied across the storefront';
+
+-- Auto-migration for existing tables
+alter table public.store_settings add column if not exists show_prices boolean default true;
 
 -- 2. TRIGGER FOR UPDATED_AT TIMESTAMP
 create or replace function public.handle_updated_at()
@@ -106,6 +111,7 @@ insert into public.store_settings (
     id,
     orders_enabled,
     bag_enabled,
+    show_prices,
     ordering_disabled_notice,
     store_name,
     tagline,
@@ -135,6 +141,7 @@ insert into public.store_settings (
     settings
 ) values (
     'default',
+    true,
     true,
     true,
     'Online orders are temporarily paused for drop preparation. Showcase browsing active.',
