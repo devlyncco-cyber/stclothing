@@ -12,7 +12,8 @@ import { BRAND_CONFIG } from '@/lib/config/brand';
 import { ArrowUpRight, Truck, ShieldCheck, RefreshCw } from 'lucide-react';
 import { AdinkraMark } from '@/components/ui/adinkra-mark';
 
-export const revalidate = 60; // ISR revalidate every 60s
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default async function HomePage() {
   const [allProducts, categories, lookbooks] = await Promise.all([

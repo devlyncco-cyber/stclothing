@@ -7,7 +7,8 @@ export const metadata = {
   description: 'Browse the full ST Clothing line from Tema, Ghana: heavyweight tees, luxury hoodies, tailored trousers, and minimalist outerwear.',
 };
 
-export const revalidate = 30;
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default async function ShopPage() {
   const [products, categories] = await Promise.all([

@@ -79,12 +79,6 @@ function saveLocalLookbooks(lookbooks: Lookbook[]) {
 
 export async function getCategories(): Promise<Category[]> {
   const cacheKey = 'categories';
-  if (typeof window !== 'undefined') {
-    const cached = await getBrowserCache<Category[]>(cacheKey);
-    if (cached && !cached.isStale) {
-      return cached.data;
-    }
-  }
 
   if (isSupabaseConfigured()) {
     const supabase = createClient();
@@ -104,7 +98,23 @@ export async function getCategories(): Promise<Category[]> {
     if (error) {
       console.error('Error fetching categories from database:', error);
     }
+
+    // Network / DB failure fallback: read from browser cache
+    if (typeof window !== 'undefined') {
+      const cached = await getBrowserCache<Category[]>(cacheKey);
+      if (cached?.data) {
+        return cached.data;
+      }
+    }
     return [];
+  }
+
+  // Local fallback
+  if (typeof window !== 'undefined') {
+    const cached = await getBrowserCache<Category[]>(cacheKey);
+    if (cached?.data) {
+      return cached.data;
+    }
   }
 
   const store = getLocalStore();
@@ -130,6 +140,9 @@ export async function createCategory(category: Partial<Category>): Promise<Categ
     const supabase = createClient();
     const { data, error } = await supabase.from('categories').insert([newCat]).select().single();
     if (!error && data) {
+      if (typeof window !== 'undefined') {
+        invalidateBrowserCache('categories');
+      }
       return data as Category;
     }
   }
@@ -152,12 +165,6 @@ export async function getProducts(options?: {
   newArrivalsOnly?: boolean;
 }): Promise<Product[]> {
   const cacheKey = `products_${JSON.stringify(options || {})}`;
-  if (typeof window !== 'undefined') {
-    const cached = await getBrowserCache<Product[]>(cacheKey);
-    if (cached && !cached.isStale) {
-      return cached.data;
-    }
-  }
 
   if (isSupabaseConfigured()) {
     const supabase = createClient();
@@ -206,13 +213,29 @@ export async function getProducts(options?: {
 
       return results;
     }
+
     if (error) {
       console.error('Error fetching products from database:', error);
+    }
+
+    // Network / DB failure fallback: read from browser cache
+    if (typeof window !== 'undefined') {
+      const cached = await getBrowserCache<Product[]>(cacheKey);
+      if (cached?.data) {
+        return cached.data;
+      }
     }
     return [];
   }
 
   // Fallback to local store only when Supabase is not configured
+  if (typeof window !== 'undefined') {
+    const cached = await getBrowserCache<Product[]>(cacheKey);
+    if (cached?.data) {
+      return cached.data;
+    }
+  }
+
   const store = getLocalStore();
   let results = [...store.products];
 
@@ -237,12 +260,6 @@ export async function getProducts(options?: {
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
   const cacheKey = `product_slug_${slug}`;
-  if (typeof window !== 'undefined') {
-    const cached = await getBrowserCache<Product>(cacheKey);
-    if (cached && !cached.isStale) {
-      return cached.data;
-    }
-  }
 
   if (isSupabaseConfigured()) {
     const supabase = createClient();
@@ -268,7 +285,22 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
     if (error) {
       console.error(`Error fetching product by slug ${slug}:`, error);
     }
+
+    // Network / DB failure fallback: read from browser cache
+    if (typeof window !== 'undefined') {
+      const cached = await getBrowserCache<Product>(cacheKey);
+      if (cached?.data) {
+        return cached.data;
+      }
+    }
     return null;
+  }
+
+  if (typeof window !== 'undefined') {
+    const cached = await getBrowserCache<Product>(cacheKey);
+    if (cached?.data) {
+      return cached.data;
+    }
   }
 
   const store = getLocalStore();
@@ -278,12 +310,6 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
 
 export async function getProductById(id: string): Promise<Product | null> {
   const cacheKey = `product_id_${id}`;
-  if (typeof window !== 'undefined') {
-    const cached = await getBrowserCache<Product>(cacheKey);
-    if (cached && !cached.isStale) {
-      return cached.data;
-    }
-  }
 
   if (isSupabaseConfigured()) {
     const supabase = createClient();
@@ -309,7 +335,22 @@ export async function getProductById(id: string): Promise<Product | null> {
     if (error) {
       console.error(`Error fetching product by id ${id}:`, error);
     }
+
+    // Network / DB failure fallback: read from browser cache
+    if (typeof window !== 'undefined') {
+      const cached = await getBrowserCache<Product>(cacheKey);
+      if (cached?.data) {
+        return cached.data;
+      }
+    }
     return null;
+  }
+
+  if (typeof window !== 'undefined') {
+    const cached = await getBrowserCache<Product>(cacheKey);
+    if (cached?.data) {
+      return cached.data;
+    }
   }
 
   const store = getLocalStore();
@@ -767,12 +808,6 @@ export async function updateOrderStatus(orderId: string, status: OrderStatus): P
 
 export async function getLookbooks(options?: { publishedOnly?: boolean }): Promise<Lookbook[]> {
   const cacheKey = `lookbooks_${JSON.stringify(options || {})}`;
-  if (typeof window !== 'undefined') {
-    const cached = await getBrowserCache<Lookbook[]>(cacheKey);
-    if (cached && !cached.isStale) {
-      return cached.data;
-    }
-  }
 
   if (isSupabaseConfigured()) {
     const supabase = createClient();
@@ -794,7 +829,23 @@ export async function getLookbooks(options?: { publishedOnly?: boolean }): Promi
     if (error) {
       console.error('Error fetching lookbooks from database:', error);
     }
+
+    // Network / DB failure fallback: read from browser cache
+    if (typeof window !== 'undefined') {
+      const cached = await getBrowserCache<Lookbook[]>(cacheKey);
+      if (cached?.data) {
+        return cached.data;
+      }
+    }
     return [];
+  }
+
+  // Local fallback
+  if (typeof window !== 'undefined') {
+    const cached = await getBrowserCache<Lookbook[]>(cacheKey);
+    if (cached?.data) {
+      return cached.data;
+    }
   }
 
   const store = getLocalStore();
@@ -808,12 +859,6 @@ export async function getLookbooks(options?: { publishedOnly?: boolean }): Promi
 
 export async function getLookbookById(id: string): Promise<Lookbook | null> {
   const cacheKey = `lookbook_id_${id}`;
-  if (typeof window !== 'undefined') {
-    const cached = await getBrowserCache<Lookbook>(cacheKey);
-    if (cached && !cached.isStale) {
-      return cached.data;
-    }
-  }
 
   if (isSupabaseConfigured()) {
     const supabase = createClient();
@@ -831,7 +876,22 @@ export async function getLookbookById(id: string): Promise<Lookbook | null> {
     if (error) {
       console.error(`Error fetching lookbook by id ${id}:`, error);
     }
+
+    // Network / DB failure fallback: read from browser cache
+    if (typeof window !== 'undefined') {
+      const cached = await getBrowserCache<Lookbook>(cacheKey);
+      if (cached?.data) {
+        return cached.data;
+      }
+    }
     return null;
+  }
+
+  if (typeof window !== 'undefined') {
+    const cached = await getBrowserCache<Lookbook>(cacheKey);
+    if (cached?.data) {
+      return cached.data;
+    }
   }
 
   const store = getLocalStore();

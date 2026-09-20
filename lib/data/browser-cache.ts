@@ -98,6 +98,7 @@ export async function setBrowserCache<T>(key: string, data: T, ttlMs: number = D
 
 /**
  * Invalidate a specific cache key or all cached data.
+ * Also broadcasts across browser tabs to synchronize client state.
  */
 export async function invalidateBrowserCache(keyPattern?: string): Promise<void> {
   if (typeof window === 'undefined') return;
@@ -110,7 +111,7 @@ export async function invalidateBrowserCache(keyPattern?: string): Promise<void>
         const cache = await caches.open(DATA_CACHE_NAME);
         const keys = await cache.keys();
         for (const req of keys) {
-          if (req.url.includes(keyPattern)) {
+          if (!keyPattern || req.url.includes(keyPattern)) {
             await cache.delete(req);
           }
         }
@@ -128,6 +129,24 @@ export async function invalidateBrowserCache(keyPattern?: string): Promise<void>
       }
     }
     keysToRemove.forEach((k) => localStorage.removeItem(k));
+
+    // Broadcast invalidation across tabs
+    try {
+      if ('BroadcastChannel' in window) {
+        const channel = new BroadcastChannel('st_clothing_cache_channel');
+        channel.postMessage({ type: 'CACHE_INVALIDATED', pattern: keyPattern, timestamp: Date.now() });
+        channel.close();
+      }
+    } catch {
+      // ignore
+    }
+
+    // Dispatch DOM event for same-tab reactive listeners
+    window.dispatchEvent(
+      new CustomEvent('st-clothing-cache-invalidated', {
+        detail: { keyPattern, timestamp: Date.now() },
+      })
+    );
   } catch (err) {
     console.warn('Browser cache invalidation error:', err);
   }

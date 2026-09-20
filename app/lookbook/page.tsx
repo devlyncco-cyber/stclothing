@@ -11,6 +11,9 @@ export const metadata = {
   description: 'Editorial lookbook showcasing contemporary Ghanaian silhouettes and minimalist essentials engineered in Tema.',
 };
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function LookbookPage() {
   const [lookbooks, products] = await Promise.all([
     getLookbooks({ publishedOnly: true }),
