@@ -240,7 +240,7 @@ export const SEED_PRODUCTS: Product[] = [
 
 export const SEED_LOOKBOOKS: Lookbook[] = [
   {
-    id: 'lb-01',
+    id: '33333333-3333-3333-3333-333333333301',
     vol: 'VOL. 01',
     title: 'Monolithic Heavyweight Essentials',
     subtitle: '35MM HARBOR ARCHIVE',
@@ -256,7 +256,7 @@ export const SEED_LOOKBOOKS: Lookbook[] = [
     updated_at: '2026-01-10T12:00:00Z',
   },
   {
-    id: 'lb-02',
+    id: '33333333-3333-3333-3333-333333333302',
     vol: 'VOL. 02',
     title: 'Architectural Tailored Trousers',
     subtitle: 'COASTAL DRAPE // TEMA ATELIER',
@@ -272,7 +272,7 @@ export const SEED_LOOKBOOKS: Lookbook[] = [
     updated_at: '2026-01-15T12:00:00Z',
   },
   {
-    id: 'lb-03',
+    id: '33333333-3333-3333-3333-333333333303',
     vol: 'VOL. 03',
     title: 'Sculpted Minimalist Outerwear',
     subtitle: 'COMMUNITY 1 STUDIO ARCHIVE',

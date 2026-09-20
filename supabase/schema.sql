@@ -483,15 +483,15 @@ on conflict (id) do nothing;
 -- 11. EDITORIAL LOOKBOOKS
 -- ------------------------------------------------------------------------------
 create table if not exists public.lookbooks (
-    id text primary key default gen_random_uuid()::text,
+    id uuid primary key default gen_random_uuid(),
     vol text not null default 'VOL. 01',
     title text not null default 'Editorial Collection',
     subtitle text default '35MM TEMA HARBOR ARCHIVE',
     description text not null default 'A visual anthology of form, fabric density, and coastal Ghanaian atmosphere.',
     image_url text not null,
     
-    -- Optional Linked Featured Garment
-    featured_product_id text references public.products(id) on delete set null,
+    -- Optional Linked Featured Garment (uuid matching public.products(id))
+    featured_product_id uuid references public.products(id) on delete set null,
     featured_product_slug text,
     featured_product_name text,
     featured_product_price numeric(10, 2),
@@ -563,13 +563,13 @@ insert into public.lookbooks (
     published
 ) values 
 (
-    'lb-01',
+    '33333333-3333-3333-3333-333333333301',
     'VOL. 01',
     'Monolithic Heavyweight Essentials',
     '35MM HARBOR ARCHIVE',
     'Shot against the industrial geometry of Tema Harbor. 450 GSM double-faced loopback terry structured with dropped shoulders and raw clean hemlines.',
     'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1800&q=85',
-    '22222222-2222-2222-2222-222222222201',
+    (select id from public.products where slug = 'st-essential-oversized-tee' limit 1),
     'st-essential-oversized-tee',
     'Heavyweight Oversized Tee',
     250.00,
@@ -577,13 +577,13 @@ insert into public.lookbooks (
     true
 ),
 (
-    'lb-02',
+    '33333333-3333-3333-3333-333333333302',
     'VOL. 02',
     'Architectural Tailored Trousers',
     'COASTAL DRAPE // TEMA ATELIER',
     'Constructed from Japanese selvedge twill and high-density cotton. A relaxed tapered silhouette engineered to balance tropical airflow and sharp editorial lines.',
     'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1800&q=85',
-    '22222222-2222-2222-2222-222222222203',
+    (select id from public.products where slug = 'st-relaxed-tailored-trousers' limit 1),
     'st-relaxed-tailored-trousers',
     'Relaxed Tailored Trousers',
     480.00,
@@ -591,13 +591,13 @@ insert into public.lookbooks (
     true
 ),
 (
-    'lb-03',
+    '33333333-3333-3333-3333-333333333303',
     'VOL. 03',
     'Sculpted Minimalist Outerwear',
     'COMMUNITY 1 STUDIO ARCHIVE',
     'Unbleached natural virgin wool blend and matte ripstop. Clean horn hardware and unlined drape that moves effortlessly with the body.',
     'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=1800&q=85',
-    '22222222-2222-2222-2222-222222222202',
+    (select id from public.products where slug = 'st-structured-monochrome-hoodie' limit 1),
     'st-structured-monochrome-hoodie',
     'Structured Monochrome Hoodie',
     380.00,
@@ -605,4 +605,5 @@ insert into public.lookbooks (
     true
 )
 on conflict (id) do nothing;
+
 
