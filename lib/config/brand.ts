@@ -61,8 +61,10 @@ export function generateProductWhatsAppUrl(params: {
   phone?: string;
 }): string {
   const phone = params.phone || '233544911015';
-  const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://stclothinggh.com';
-  const productUrl = `${currentOrigin}/product/${params.productSlug}`;
+  const currentOrigin = typeof window !== 'undefined' && window.location?.origin
+    ? window.location.origin
+    : (process.env.NEXT_PUBLIC_SITE_URL || '');
+  const productUrl = currentOrigin ? `${currentOrigin}/product/${params.productSlug}` : `/product/${params.productSlug}`;
   
   const text = `Hello ST Clothing, I'd like to order:
 Product: ${params.productName}

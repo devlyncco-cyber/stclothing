@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     '@st_clothing_gh',
   ],
   authors: [{ name: 'ST Clothing Atelier, Tema' }],
-  metadataBase: new URL('https://stclothinggh.com'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://stclothing.vercel.app'),
   openGraph: {
     title: 'ST Clothing — Made for Tema. Worn Everywhere.',
     description: 'Contemporary minimalist clothing brand from Tema, Ghana (@st_clothing_gh).',
@@ -71,7 +71,7 @@ export default function RootLayout({
     name: 'ST Clothing',
     alternateName: 'ST Clothing Ghana',
     description: 'Modern editorial clothing brand based in Tema, Ghana.',
-    url: 'https://stclothinggh.com',
+    url: process.env.NEXT_PUBLIC_SITE_URL || 'https://stclothing.vercel.app',
     telephone: [BRAND_CONFIG.contacts.primaryPhoneIntl, BRAND_CONFIG.contacts.secondaryPhoneIntl],
     address: {
       '@type': 'PostalAddress',

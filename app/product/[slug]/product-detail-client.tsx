@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { Product } from '@/types/database';
 import { ProductGallery } from '@/components/product-gallery';
@@ -51,6 +51,14 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
   const currentStock = currentVariant !== undefined ? currentVariant.stock_quantity : 15;
   const isOutOfStock = currentStock <= 0;
 
+  const [productUrl, setProductUrl] = useState<string>(`/product/${product.slug}`);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setProductUrl(`${window.location.origin}/product/${product.slug}`);
+    }
+  }, [product.slug]);
+
   // Build WhatsApp URL with live selected size, color, quantity and price
   const primaryWa = settings.primaryWhatsApp || '233544911015';
   const whatsAppOrderText = `Hello ${settings.storeName || 'ST Clothing'}, I want to order:
@@ -59,11 +67,11 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
 - Color: ${selectedColor}
 - Qty: ${quantity}
 - Price: GH₵ ${product.price * quantity}
-- Link: https://stclothinggh.com/product/${product.slug}`;
+- Link: ${productUrl}`;
 
   const whatsAppOrderUrl = `https://wa.me/${primaryWa}?text=${encodeURIComponent(whatsAppOrderText)}`;
 
-  const whatsAppInquiryText = `Hello ${settings.storeName || 'ST Clothing'}, I am inquiring about: ${product.name} (https://stclothinggh.com/product/${product.slug})`;
+  const whatsAppInquiryText = `Hello ${settings.storeName || 'ST Clothing'}, I am inquiring about: ${product.name} (${productUrl})`;
   const whatsAppInquiryUrl = `https://wa.me/${primaryWa}?text=${encodeURIComponent(whatsAppInquiryText)}`;
 
   const handleAddToCart = () => {
